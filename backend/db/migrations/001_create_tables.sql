@@ -165,5 +165,8 @@ create table retrieval_corpus (
     module          text,
     tags            text default '',
     embedding       vector(1536),
+    confidence      float not null default 0.5,   -- feedback score: up on resolve, down on unhelpful
+    usage_count     int not null default 0,        -- times used in a resolution
+    updated_at      timestamptz default now(),     -- content freshness
     primary key (source_type, source_id)
 );
