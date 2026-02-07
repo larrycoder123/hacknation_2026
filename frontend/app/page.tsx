@@ -1,65 +1,134 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { Ticket, Message, SuggestedAction, CloseTicketPayload } from "./types";
+import { MOCK_TICKETS, MOCK_MESSAGES, MOCK_SUGGESTIONS } from "./data";
+import TicketQueue from "../components/TicketQueue";
+import TicketDetail from "../components/TicketDetail";
+import AIAssistant from "../components/AIAssistant";
+import CloseTicketModal from "../components/CloseTicketModal";
 
 export default function Home() {
+  const [tickets, setTickets] = useState<Ticket[]>(MOCK_TICKETS);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Record<string, Message[]>>(MOCK_MESSAGES);
+  const [suggestions, setSuggestions] = useState<SuggestedAction[]>([]);
+  const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
+  const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
+
+  // Lifted state for the input box
+  const [inputMessage, setInputMessage] = useState('');
+
+  const selectedTicket = tickets.find((t) => t.id === selectedTicketId) || null;
+  const currentMessages = selectedTicketId ? (messages[selectedTicketId] || []) : [];
+
+  const handleSelectTicket = (id: string) => {
+    setSelectedTicketId(id);
+    setSuggestions([]); // Reset suggestions on ticket switch
+    setInputMessage(''); // Reset input
+  };
+
+  const handleSendMessage = (content: string) => {
+    if (!selectedTicketId) return;
+
+    const newMessage: Message = {
+      id: `m${Date.now()}`,
+      ticketId: selectedTicketId,
+      sender: "agent",
+      content,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setMessages((prev) => ({
+      ...prev,
+      [selectedTicketId]: [...(prev[selectedTicketId] || []), newMessage],
+    }));
+  };
+
+  const handleGetSuggestions = () => {
+    setIsSuggestionsLoading(true);
+    // Simulate API delay
+    setTimeout(() => {
+      setSuggestions(MOCK_SUGGESTIONS);
+      setIsSuggestionsLoading(false);
+    }, 1200);
+  };
+
+  const handleApplySuggestion = (suggestion: SuggestedAction) => {
+    if (suggestion.type === 'response') {
+      // "Summarize" and format logic (Mocked)
+      // In a real app, this would call an LLM to summarize the article based on the chat context.
+      // Here we'll just extract the "Customer Communication Template" part or create a summary.
+
+      // Simple heuristic for the mock:
+      let summary = suggestion.content;
+      if (suggestion.content.includes("Customer Communication Template:")) {
+        summary = suggestion.content.split("Customer Communication Template:")[1].replace(/"/g, '').trim();
+      } else {
+        // If no template, we just use the description or a placeholder summary
+        summary = `Based on the article "${suggestion.title}", here is a summary:\n\n${suggestion.description}`;
+      }
+
+      setInputMessage(summary);
+    } else if (suggestion.type === 'script') {
+      // For scripts, we can maybe show a confirmation or a toast
+      alert(`Executing Script: ${suggestion.title}\n\n${suggestion.content}`);
+    }
+  };
+
+  const handleCloseTicket = (payload: CloseTicketPayload) => {
+    if (!selectedTicketId) return;
+
+    setTickets((prev) =>
+      prev.map(t => t.id === selectedTicketId ? { ...t, status: 'Resolved' } : t)
+    );
+
+    const systemMessage: Message = {
+      id: `sys-${Date.now()}`,
+      ticketId: selectedTicketId,
+      sender: 'system',
+      content: `Ticket closed by agent. Resolution: ${payload.resolution_type}. Notes: ${payload.notes || 'None'}`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setMessages((prev) => ({
+      ...prev,
+      [selectedTicketId]: [...(prev[selectedTicketId] || []), systemMessage],
+    }));
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="flex h-screen w-full bg-zinc-50 dark:bg-black text-zinc-900 dark:text-zinc-100 overflow-hidden font-sans">
+      <TicketQueue
+        tickets={tickets}
+        selectedTicketId={selectedTicketId}
+        onSelectTicket={handleSelectTicket}
+      />
+
+      <TicketDetail
+        ticket={selectedTicket}
+        messages={currentMessages}
+        onSendMessage={handleSendMessage}
+        onCloseTicket={() => selectedTicketId && setIsCloseModalOpen(true)}
+        inputMessage={inputMessage}
+        onInputChange={setInputMessage}
+      />
+
+      <AIAssistant
+        suggestions={suggestions}
+        isLoading={isSuggestionsLoading}
+        onGetSuggestions={handleGetSuggestions}
+        onApplySuggestion={handleApplySuggestion}
+      />
+
+      {selectedTicketId && (
+        <CloseTicketModal
+          isOpen={isCloseModalOpen}
+          onClose={() => setIsCloseModalOpen(false)}
+          onConfirm={handleCloseTicket}
+          ticketId={selectedTicketId}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      )}
+    </main>
   );
 }
