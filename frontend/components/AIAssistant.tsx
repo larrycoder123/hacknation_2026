@@ -1,4 +1,8 @@
 import { SuggestedAction, ActionType } from '../app/types';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { Sparkles, Terminal, MessageSquare, AlertCircle, RefreshCw, Check, ArrowRight } from 'lucide-react';
 
 interface AIAssistantProps {
     suggestions: SuggestedAction[];
@@ -7,17 +11,16 @@ interface AIAssistantProps {
     onApplySuggestion: (suggestion: SuggestedAction) => void;
 }
 
-// Simplified badge without background color for less "rainbow" look
 const ConfidenceScore = ({ score }: { score: number }) => {
-    let colorClass = 'text-zinc-500';
+    let colorClass = 'text-muted-foreground';
     if (score >= 0.8) {
-        colorClass = 'text-green-600 dark:text-green-400';
+        colorClass = 'text-emerald-600 dark:text-emerald-500';
     } else if (score >= 0.6) {
-        colorClass = 'text-yellow-600 dark:text-yellow-400';
+        colorClass = 'text-amber-600 dark:text-amber-500';
     }
 
     return (
-        <span className={`text-xs font-mono font-medium ${colorClass}`}>
+        <span className={cn("text-[10px] font-mono font-medium", colorClass)}>
             {Math.round(score * 100)}% Match
         </span>
     );
@@ -26,119 +29,129 @@ const ConfidenceScore = ({ score }: { score: number }) => {
 const ActionIcon = ({ type }: { type: ActionType }) => {
     switch (type) {
         case 'script':
-            return (
-                <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                </svg>
-            );
+            return <Terminal className="w-4 h-4 text-blue-500" />;
         case 'response':
-            return (
-                <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                </svg>
-            );
+            return <MessageSquare className="w-4 h-4 text-primary" />;
         default:
-            return (
-                <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-            );
+            return <AlertCircle className="w-4 h-4 text-red-500" />;
     }
 }
 
 export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, onApplySuggestion }: AIAssistantProps) {
     return (
-        // Increased width to w-96 (24rem / 384px)
-        <div className="w-96 border-l border-zinc-200 dark:border-zinc-800 h-full flex flex-col bg-white dark:bg-zinc-950 flex-shrink-0">
-            <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">AI Assistant</h2>
-                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded-full border border-zinc-200 dark:border-zinc-800">
-                    Beta
-                </span>
+        <div className="w-80 2xl:w-96 border-l border-border h-full flex flex-col bg-background flex-shrink-0">
+            <div className="p-4 h-16 border-b border-border flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    <h2 className="text-sm font-semibold text-foreground tracking-tight">AI Assistant</h2>
+                </div>
+
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4 scrollbar-hide">
                 {suggestions.length === 0 && !isLoading ? (
-                    <div className="text-center py-8">
-                        <div className="text-zinc-300 dark:text-zinc-700 mb-4">
-                            <svg className="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                            </svg>
+                    <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-forwards" style={{ animationDelay: '100ms', opacity: 1 }}>
+                        <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center">
+                            <Sparkles className="w-6 h-6 text-muted-foreground/50" />
                         </div>
-                        <p className="text-sm text-zinc-500 mb-4">
-                            Analyze the ticket to get relevant scripts, knowledge base articles, and actions.
-                        </p>
-                        <button
+                        <div className="space-y-1 max-w-[240px]">
+                            <h3 className="text-sm font-medium text-foreground">No suggestions yet</h3>
+                            <p className="text-xs text-muted-foreground">
+                                Analyze the ticket to get relevant scripts, knowledge base articles, and actions.
+                            </p>
+                        </div>
+                        <Button
                             onClick={onGetSuggestions}
-                            className="w-full py-2 px-4 bg-zinc-900 dark:bg-zinc-100 hover:opacity-90 text-white dark:text-black text-sm font-medium rounded-md transition-all shadow-sm"
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
+                            size="sm"
                         >
-                            Analyze & Get Suggestions
-                        </button>
+                            Analyze Ticket
+                        </Button>
                     </div>
                 ) : (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         {isLoading ? (
-                            <div className="space-y-4 animate-pulse">
+                            <div className="space-y-4">
                                 {[1, 2, 3].map((i) => (
-                                    <div key={i} className="h-32 bg-zinc-100 dark:bg-zinc-900 rounded-lg"></div>
+                                    <div key={i} className="h-40 bg-muted/20 rounded-xl animate-pulse"></div>
                                 ))}
                             </div>
                         ) : (
                             <>
-                                <div className="flex justify-between items-center px-1">
-                                    <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Top Suggestions</span>
-                                    <button onClick={onGetSuggestions} className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium">
+                                <div className="flex justify-between items-center px-1 pb-2">
+                                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Top Suggestions</span>
+                                    <Button
+                                        onClick={onGetSuggestions}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 text-[10px] text-muted-foreground hover:text-foreground gap-1.5"
+                                    >
+                                        <RefreshCw className="w-3 h-3" />
                                         Refresh
-                                    </button>
+                                    </Button>
                                 </div>
                                 {suggestions.map((suggestion) => (
-                                    <div key={suggestion.id} className="group p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-900/50 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all shadow-sm">
-                                        <div className="flex justify-between items-start mb-3">
+                                    <div
+                                        key={suggestion.id}
+                                        className="group p-4 border border-border rounded-xl bg-card hover:border-border/80 transition-all shadow-sm space-y-3"
+                                    >
+                                        <div className="flex justify-between items-start">
                                             <div className="flex items-center gap-2">
-                                                <ActionIcon type={suggestion.type} />
-                                                <span className="text-xs font-medium text-zinc-500 capitalize">{suggestion.type}</span>
+                                                <div className="p-1.5 rounded-md bg-muted/50 border border-border/50">
+                                                    <ActionIcon type={suggestion.type} />
+                                                </div>
+                                                <span className="text-xs font-medium text-muted-foreground capitalize">{suggestion.type}</span>
                                             </div>
                                             <ConfidenceScore score={suggestion.confidence_score} />
                                         </div>
 
-                                        <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-2">{suggestion.title}</h3>
-                                        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4 leading-relaxed">
-                                            {suggestion.description}
-                                        </p>
+                                        <div className="space-y-1">
+                                            <h3 className="text-sm font-medium text-foreground leading-tight">{suggestion.title}</h3>
+                                            <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+                                                {suggestion.description}
+                                            </p>
+                                        </div>
 
                                         {suggestion.type === 'script' && (
-                                            <div className="bg-zinc-900 rounded-md p-3 mb-4 overflow-x-auto border border-zinc-800">
-                                                <code className="text-xs text-zinc-300 font-mono whitespace-pre block">{suggestion.content}</code>
+                                            <div className="bg-muted/30 rounded-md p-3 border border-border/50">
+                                                <code className="text-xs text-foreground/80 font-mono whitespace-pre block overflow-x-auto">
+                                                    {suggestion.content}
+                                                </code>
                                             </div>
                                         )}
 
                                         {suggestion.type === 'response' && (
-                                            // Displaying knowledge base article content more prominently, but truncated visually if too long (mocking truncation via simple CSS or just showing it all since user asked to see it)
-                                            <div className="bg-zinc-50 dark:bg-zinc-950/50 border border-zinc-200 dark:border-zinc-800 rounded-md p-3 mb-4">
-                                                <p className="text-xs text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap font-mono">{suggestion.content}</p>
+                                            <div className="bg-muted/30 rounded-md p-3 border border-border/50">
+                                                <p className="text-xs text-foreground/80 font-mono whitespace-pre-wrap leading-relaxed">
+                                                    {suggestion.content}
+                                                </p>
                                             </div>
                                         )}
 
-                                        <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800/50">
-                                            <span className="text-[10px] text-zinc-400">Source: {suggestion.source}</span>
+                                        <div className="flex items-center justify-between pt-3 border-t border-border/40">
+                                            <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">
+                                                {suggestion.source}
+                                            </span>
 
                                             {suggestion.type === 'script' ? (
-                                                <button
+                                                <Button
                                                     onClick={() => onApplySuggestion(suggestion)}
-                                                    className="px-3 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-black text-xs font-medium rounded hover:opacity-90 transition-opacity"
+                                                    size="sm"
+                                                    className="h-7 text-xs bg-foreground text-background hover:bg-foreground/90 gap-1.5"
                                                 >
+                                                    <Terminal className="w-3 h-3" />
                                                     Run Script
-                                                </button>
+                                                </Button>
                                             ) : (
-                                                <button
+                                                <Button
                                                     onClick={() => onApplySuggestion(suggestion)}
-                                                    className="ml-auto text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 text-xs text-primary hover:text-primary/90 hover:bg-primary/10 gap-1.5 ml-auto"
                                                 >
                                                     Use This
-                                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                                    </svg>
-                                                </button>
+                                                    <ArrowRight className="w-3 h-3" />
+                                                </Button>
                                             )}
                                         </div>
                                     </div>

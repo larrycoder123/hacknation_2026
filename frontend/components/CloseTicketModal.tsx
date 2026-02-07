@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import { CloseTicketPayload } from '../app/types';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface CloseTicketModalProps {
     isOpen: boolean;
@@ -25,78 +29,104 @@ export default function CloseTicketModal({ isOpen, onClose, onConfirm, ticketId 
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-xl shadow-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800">
-                <div className="p-6">
-                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Close Ticket</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm transition-all duration-100 data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=open]:fade-in">
+            <div className="w-full max-w-md bg-card rounded-xl shadow-lg border border-border animate-in fade-in zoom-in-95 duration-200">
+                <div className="p-6 space-y-6">
+                    <div>
+                        <h3 className="text-lg font-semibold text-foreground tracking-tight">Close Ticket</h3>
+                        <p className="text-sm text-muted-foreground mt-1">Select a resolution status for ticket #{ticketId}</p>
+                    </div>
 
                     <div className="space-y-4">
-                        <div>
-                            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2 block">Resolution Status</label>
-                            <div className="space-y-2">
-                                <label className="flex items-center gap-2 cursor-pointer p-3 border border-zinc-200 dark:border-zinc-800 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                        <div className="space-y-3">
+                            <label className="text-xs font-medium text-foreground uppercase tracking-wider">Resolution Status</label>
+                            <div className="grid grid-cols-1 gap-2">
+                                <label className={cn(
+                                    "flex items-center gap-3 cursor-pointer p-3 border rounded-lg transition-all",
+                                    resolutionType === 'Resolved Successfully'
+                                        ? "bg-emerald-500/5 border-emerald-500/20 ring-1 ring-emerald-500/20"
+                                        : "bg-background border-border hover:bg-muted/50"
+                                )}>
                                     <input
                                         type="radio"
                                         name="resolution"
                                         value="Resolved Successfully"
                                         checked={resolutionType === 'Resolved Successfully'}
                                         onChange={() => setResolutionType('Resolved Successfully')}
-                                        className="w-4 h-4 text-blue-600 border-zinc-300 focus:ring-blue-500"
+                                        className="sr-only"
                                     />
-                                    <span className="text-sm text-zinc-700 dark:text-zinc-300">Resolved Successfully</span>
+                                    <div className={cn(
+                                        "h-4 w-4 rounded-full border flex items-center justify-center",
+                                        resolutionType === 'Resolved Successfully' ? "border-emerald-500 bg-emerald-500" : "border-muted-foreground"
+                                    )}>
+                                        {resolutionType === 'Resolved Successfully' && <CheckCircle2 className="h-3 w-3 text-white" />}
+                                    </div>
+                                    <span className={cn("text-sm font-medium", resolutionType === 'Resolved Successfully' ? "text-emerald-700 dark:text-emerald-400" : "text-foreground")}>
+                                        Resolved Successfully
+                                    </span>
                                 </label>
-                                <label className="flex items-center gap-2 cursor-pointer p-3 border border-zinc-200 dark:border-zinc-800 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+
+                                <label className={cn(
+                                    "flex items-center gap-3 cursor-pointer p-3 border rounded-lg transition-all",
+                                    resolutionType === 'Not Applicable'
+                                        ? "bg-slate-500/5 border-slate-500/20 ring-1 ring-slate-500/20"
+                                        : "bg-background border-border hover:bg-muted/50"
+                                )}>
                                     <input
                                         type="radio"
                                         name="resolution"
                                         value="Not Applicable"
                                         checked={resolutionType === 'Not Applicable'}
                                         onChange={() => setResolutionType('Not Applicable')}
-                                        className="w-4 h-4 text-blue-600 border-zinc-300 focus:ring-blue-500"
+                                        className="sr-only"
                                     />
-                                    <span className="text-sm text-zinc-700 dark:text-zinc-300">Not Applicable / Spam</span>
+                                    <div className={cn(
+                                        "h-4 w-4 rounded-full border flex items-center justify-center",
+                                        resolutionType === 'Not Applicable' ? "border-slate-500 bg-slate-500" : "border-muted-foreground"
+                                    )}>
+                                        {resolutionType === 'Not Applicable' && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                                    </div>
+                                    <span className={cn("text-sm font-medium", resolutionType === 'Not Applicable' ? "text-slate-700 dark:text-slate-400" : "text-foreground")}>
+                                        Not Applicable / Spam
+                                    </span>
                                 </label>
                             </div>
                         </div>
 
-                        <div>
-                            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2 block">
-                                Notes <span className="text-zinc-400 font-normal">(optional)</span>
+                        <div className="space-y-2">
+                            <label className="text-xs font-medium text-foreground uppercase tracking-wider">
+                                Notes <span className="text-muted-foreground font-normal normal-case opacity-50 ml-1">(Optional)</span>
                             </label>
-                            <textarea
+                            <Textarea
                                 value={notes}
                                 onChange={(e) => setNotes(e.target.value)}
                                 placeholder="Brief summary of how it was resolved..."
-                                className="w-full min-h-[80px] p-3 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
+                                className="min-h-[100px] resize-none"
                             />
                         </div>
 
-                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg flex gap-3">
-                            <div className="text-blue-600 dark:text-blue-400 shrink-0">
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <p className="text-xs text-blue-800 dark:text-blue-200">
+                        <div className="flex items-start gap-3 p-3 bg-primary/5 border border-primary/10 rounded-lg">
+                            <AlertCircle className="h-4 w-4 text-primary mt-0.5" />
+                            <p className="text-[11px] text-primary/80 leading-relaxed">
                                 Successful resolutions will be added to the knowledge base to improve future AI suggestions.
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="px-6 py-4 bg-zinc-50 dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 flex justify-end gap-3">
-                    <button
+                <div className="px-6 py-4 bg-muted/30 border-t border-border flex justify-end gap-3">
+                    <Button
+                        variant="ghost"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
                     >
                         Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         onClick={handleSubmit}
-                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors shadow-sm"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-[100px]"
                     >
                         Close Ticket
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>

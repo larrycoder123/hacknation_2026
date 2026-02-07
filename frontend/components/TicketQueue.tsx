@@ -1,4 +1,7 @@
 import { Ticket, Priority } from '../app/types';
+import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 
 interface TicketQueueProps {
     tickets: Ticket[];
@@ -7,14 +10,14 @@ interface TicketQueueProps {
 }
 
 const PriorityBadge = ({ priority }: { priority: Priority }) => {
-    const colors = {
-        High: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-        Medium: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
-        Low: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+    const variants: Record<Priority, string> = {
+        High: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-200/20',
+        Medium: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-200/20',
+        Low: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200/20',
     };
 
     return (
-        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${colors[priority]}`}>
+        <span className={cn("px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-semibold border", variants[priority])}>
             {priority}
         </span>
     );
@@ -22,26 +25,42 @@ const PriorityBadge = ({ priority }: { priority: Priority }) => {
 
 export default function TicketQueue({ tickets, selectedTicketId, onSelectTicket }: TicketQueueProps) {
     return (
-        <div className="w-80 border-r border-zinc-200 dark:border-zinc-800 h-full flex flex-col bg-white dark:bg-zinc-950 flex-shrink-0">
-            <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
-                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Ticket Queue</h2>
+        <div className="w-80 border-r border-border h-full flex flex-col bg-muted/10 backdrop-blur-xl flex-shrink-0">
+            <div className="p-4 border-b border-border space-y-4">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold text-foreground tracking-tight">Inbox</h2>
+                    <div className="text-xs text-muted-foreground font-medium bg-secondary px-2 py-0.5 rounded-md">
+                        {tickets.length}
+                    </div>
+                </div>
+                <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input placeholder="Search tickets..." className="pl-8 bg-background border-border" />
+                </div>
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
                 {tickets.map((ticket) => (
                     <button
                         key={ticket.id}
                         onClick={() => onSelectTicket(ticket.id)}
-                        className={`w-full text-left p-4 border-b border-zinc-100 dark:border-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors ${selectedTicketId === ticket.id ? 'bg-blue-50 dark:bg-blue-900/10 border-l-4 border-l-blue-500' : 'border-l-4 border-l-transparent'
-                            }`}
+                        className={cn(
+                            "w-full text-left p-3 rounded-lg border border-transparent transition-all duration-200 group relative",
+                            selectedTicketId === ticket.id
+                                ? "bg-background shadow-sm border-border"
+                                : "hover:bg-sidebar-accent hover:border-border/50 text-muted-foreground hover:text-foreground"
+                        )}
                     >
-                        <div className="flex justify-between items-start mb-1">
+                        <div className="flex justify-between items-start mb-2">
                             <PriorityBadge priority={ticket.priority} />
-                            <span className="text-xs text-zinc-500 dark:text-zinc-400">{ticket.timeAgo}</span>
+                            <span className="text-[10px] font-medium opacity-60 tabular-nums">{ticket.timeAgo}</span>
                         </div>
-                        <div className="font-medium text-zinc-900 dark:text-zinc-100 truncate mb-1">
+                        <div className={cn(
+                            "font-medium text-sm truncate mb-0.5",
+                            selectedTicketId === ticket.id ? "text-foreground" : "text-foreground/80 group-hover:text-foreground"
+                        )}>
                             {ticket.customerName}
                         </div>
-                        <div className="text-sm text-zinc-600 dark:text-zinc-400 truncate">
+                        <div className="text-xs truncate opacity-70">
                             {ticket.subject}
                         </div>
                     </button>

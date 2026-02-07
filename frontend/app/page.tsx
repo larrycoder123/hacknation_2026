@@ -98,7 +98,7 @@ export default function Home() {
   };
 
   return (
-    <main className="flex h-screen w-full bg-zinc-50 dark:bg-black text-zinc-900 dark:text-zinc-100 overflow-hidden font-sans">
+    <main className="flex h-full w-full bg-background text-foreground overflow-hidden font-sans antialiased selection:bg-primary/30">
       <TicketQueue
         tickets={tickets}
         selectedTicketId={selectedTicketId}
