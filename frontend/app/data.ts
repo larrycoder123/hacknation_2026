@@ -113,13 +113,5 @@ Customer Communication Template:
 "I apologize for the inconvenience. It appears our certification verification system is currently under heavy load, which is causing a delay in syncing your property details. This usually resolves within 2-4 hours. However, since you are seeing an error, I can manually trigger a refresh for you. Would you like me to do that now?"`,
         source: "Knowledge Base Art. 12"
     },
-    {
-        id: "act_8821_c",
-        type: "action",
-        confidence_score: 0.45,
-        title: "Escalate to Engineering",
-        description: "If the script fails, escalate immediately.",
-        content: "ESCALATE_TICKET",
-        source: "SOP Rule #4"
-    }
+
 ];

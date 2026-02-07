@@ -20,7 +20,7 @@ const ConfidenceScore = ({ score }: { score: number }) => {
     }
 
     return (
-        <span className={cn("text-[10px] font-mono font-medium", colorClass)}>
+        <span className={cn("text-xs font-mono font-medium", colorClass)}>
             {Math.round(score * 100)}% Match
         </span>
     );
@@ -39,11 +39,11 @@ const ActionIcon = ({ type }: { type: ActionType }) => {
 
 export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, onApplySuggestion }: AIAssistantProps) {
     return (
-        <div className="w-80 2xl:w-96 border-l border-border h-full flex flex-col bg-background flex-shrink-0">
+        <div className="w-[400px] 2xl:w-[480px] border-l border-border h-full flex flex-col bg-background flex-shrink-0">
             <div className="p-4 h-16 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-primary" />
-                    <h2 className="text-sm font-semibold text-foreground tracking-tight">AI Assistant</h2>
+                    <h2 className="text-base font-semibold text-foreground tracking-tight">AI Assistant</h2>
                 </div>
 
             </div>
@@ -55,8 +55,8 @@ export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, 
                             <Sparkles className="w-6 h-6 text-muted-foreground/50" />
                         </div>
                         <div className="space-y-1 max-w-[240px]">
-                            <h3 className="text-sm font-medium text-foreground">No suggestions yet</h3>
-                            <p className="text-xs text-muted-foreground">
+                            <h3 className="text-base font-medium text-foreground">No suggestions yet</h3>
+                            <p className="text-sm text-muted-foreground">
                                 Analyze the ticket to get relevant scripts, knowledge base articles, and actions.
                             </p>
                         </div>
@@ -79,12 +79,12 @@ export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, 
                         ) : (
                             <>
                                 <div className="flex justify-between items-center px-1 pb-2">
-                                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Top Suggestions</span>
+                                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Top Suggestions</span>
                                     <Button
                                         onClick={onGetSuggestions}
                                         variant="ghost"
                                         size="sm"
-                                        className="h-6 text-[10px] text-muted-foreground hover:text-foreground gap-1.5"
+                                        className="h-6 text-xs text-muted-foreground hover:text-foreground gap-1.5"
                                     >
                                         <RefreshCw className="w-3 h-3" />
                                         Refresh
@@ -100,21 +100,21 @@ export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, 
                                                 <div className="p-1.5 rounded-md bg-muted/50 border border-border/50">
                                                     <ActionIcon type={suggestion.type} />
                                                 </div>
-                                                <span className="text-xs font-medium text-muted-foreground capitalize">{suggestion.type}</span>
+                                                <span className="text-sm font-medium text-muted-foreground capitalize">{suggestion.type}</span>
                                             </div>
                                             <ConfidenceScore score={suggestion.confidence_score} />
                                         </div>
 
                                         <div className="space-y-1">
-                                            <h3 className="text-sm font-medium text-foreground leading-tight">{suggestion.title}</h3>
-                                            <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+                                            <h3 className="text-base font-medium text-foreground leading-tight">{suggestion.title}</h3>
+                                            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
                                                 {suggestion.description}
                                             </p>
                                         </div>
 
                                         {suggestion.type === 'script' && (
                                             <div className="bg-muted/30 rounded-md p-3 border border-border/50">
-                                                <code className="text-xs text-foreground/80 font-mono whitespace-pre block overflow-x-auto">
+                                                <code className="text-sm text-foreground/80 font-mono whitespace-pre block overflow-x-auto">
                                                     {suggestion.content}
                                                 </code>
                                             </div>
@@ -122,14 +122,14 @@ export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, 
 
                                         {suggestion.type === 'response' && (
                                             <div className="bg-muted/30 rounded-md p-3 border border-border/50">
-                                                <p className="text-xs text-foreground/80 font-mono whitespace-pre-wrap leading-relaxed">
+                                                <p className="text-sm text-foreground/80 font-mono whitespace-pre-wrap leading-relaxed">
                                                     {suggestion.content}
                                                 </p>
                                             </div>
                                         )}
 
                                         <div className="flex items-center justify-between pt-3 border-t border-border/40">
-                                            <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">
+                                            <span className="text-xs text-muted-foreground truncate max-w-[120px]">
                                                 {suggestion.source}
                                             </span>
 
@@ -137,7 +137,7 @@ export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, 
                                                 <Button
                                                     onClick={() => onApplySuggestion(suggestion)}
                                                     size="sm"
-                                                    className="h-7 text-xs bg-foreground text-background hover:bg-foreground/90 gap-1.5"
+                                                    className="h-7 text-sm bg-foreground text-background hover:bg-foreground/90 gap-1.5"
                                                 >
                                                     <Terminal className="w-3 h-3" />
                                                     Run Script
@@ -147,7 +147,7 @@ export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, 
                                                     onClick={() => onApplySuggestion(suggestion)}
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="h-7 text-xs text-primary hover:text-primary/90 hover:bg-primary/10 gap-1.5 ml-auto"
+                                                    className="h-7 text-sm text-primary hover:text-primary/90 hover:bg-primary/10 gap-1.5 ml-auto"
                                                 >
                                                     Use This
                                                     <ArrowRight className="w-3 h-3" />

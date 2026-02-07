@@ -55,18 +55,18 @@ export default function TicketDetail({ ticket, messages, onSendMessage, onCloseT
                 <div className="flex items-center gap-4">
                     <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono text-muted-foreground">#{ticket.id}</span>
-                            <h2 className="text-sm font-semibold text-foreground tracking-tight line-clamp-1">
+                            <span className="text-sm font-mono text-muted-foreground">#{ticket.id}</span>
+                            <h2 className="text-base font-semibold text-foreground tracking-tight line-clamp-1">
                                 {ticket.subject}
                             </h2>
                             <Badge variant="outline" className={cn(
-                                "ml-2 text-[10px] uppercase tracking-wider h-5 px-1.5",
+                                "ml-2 text-xs uppercase tracking-wider h-5 px-1.5",
                                 ticket.status === 'Open' ? "bg-emerald-500/10 text-emerald-600 border-emerald-200/20" : "bg-zinc-100 text-zinc-600"
                             )}>
                                 {ticket.status}
                             </Badge>
                         </div>
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                             <span>via</span>
                             <span className="font-medium text-foreground">{ticket.customerName}</span>
                         </div>
@@ -78,7 +78,7 @@ export default function TicketDetail({ ticket, messages, onSendMessage, onCloseT
                         variant="outline"
                         size="sm"
                         onClick={onCloseTicket}
-                        className="h-8 text-xs gap-1.5 hidden sm:flex"
+                        className="h-8 text-sm gap-1.5 hidden sm:flex"
                     >
                         <X className="h-3.5 w-3.5" />
                         Close Ticket
@@ -98,22 +98,20 @@ export default function TicketDetail({ ticket, messages, onSendMessage, onCloseT
                                 isAgent ? "ml-auto flex-row-reverse" : ""
                             )}
                         >
-                            <Avatar className="h-8 w-8 mt-0.5 border border-border">
-                                {isAgent ? null : <div className="text-[10px]">{ticket.customerName.charAt(0)}</div>}
-                            </Avatar>
+
                             <div className={cn(
                                 "flex flex-col gap-1 min-w-0 max-w-[80%]",
                                 isAgent ? "items-end" : "items-start"
                             )}>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[11px] font-medium text-foreground">
+                                    <span className="text-xs font-medium text-foreground">
                                         {isAgent ? 'Support Agent' : ticket.customerName}
                                     </span>
-                                    <span className="text-[10px] text-muted-foreground">{message.timestamp}</span>
+                                    <span className="text-xs text-muted-foreground">{message.timestamp}</span>
                                 </div>
                                 <div
                                     className={cn(
-                                        "rounded-md px-4 py-2.5 text-sm shadow-sm leading-relaxed",
+                                        "rounded-md px-4 py-2.5 text-base shadow-sm leading-relaxed",
                                         isAgent
                                             ? "bg-zinc-700 text-foreground"
                                             : "bg-muted text-foreground border border-border/50"

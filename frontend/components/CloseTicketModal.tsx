@@ -39,7 +39,7 @@ export default function CloseTicketModal({ isOpen, onClose, onConfirm, ticketId 
 
                     <div className="space-y-4">
                         <div className="space-y-3">
-                            <label className="text-xs font-medium text-foreground uppercase tracking-wider">Resolution Status</label>
+                            <label className="text-sm font-medium text-foreground uppercase tracking-wider">Resolution Status</label>
                             <div className="grid grid-cols-1 gap-2">
                                 <label className={cn(
                                     "flex items-center gap-3 cursor-pointer p-3 border rounded-lg transition-all",
@@ -61,7 +61,7 @@ export default function CloseTicketModal({ isOpen, onClose, onConfirm, ticketId 
                                     )}>
                                         {resolutionType === 'Resolved Successfully' && <CheckCircle2 className="h-3 w-3 text-white" />}
                                     </div>
-                                    <span className={cn("text-sm font-medium", resolutionType === 'Resolved Successfully' ? "text-emerald-700 dark:text-emerald-400" : "text-foreground")}>
+                                    <span className={cn("text-base font-medium", resolutionType === 'Resolved Successfully' ? "text-emerald-700 dark:text-emerald-400" : "text-foreground")}>
                                         Resolved Successfully
                                     </span>
                                 </label>
@@ -86,7 +86,7 @@ export default function CloseTicketModal({ isOpen, onClose, onConfirm, ticketId 
                                     )}>
                                         {resolutionType === 'Not Applicable' && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                                     </div>
-                                    <span className={cn("text-sm font-medium", resolutionType === 'Not Applicable' ? "text-slate-700 dark:text-slate-400" : "text-foreground")}>
+                                    <span className={cn("text-base font-medium", resolutionType === 'Not Applicable' ? "text-slate-700 dark:text-slate-400" : "text-foreground")}>
                                         Not Applicable / Spam
                                     </span>
                                 </label>
@@ -94,7 +94,7 @@ export default function CloseTicketModal({ isOpen, onClose, onConfirm, ticketId 
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-xs font-medium text-foreground uppercase tracking-wider">
+                            <label className="text-sm font-medium text-foreground uppercase tracking-wider">
                                 Notes <span className="text-muted-foreground font-normal normal-case opacity-50 ml-1">(Optional)</span>
                             </label>
                             <Textarea
@@ -107,7 +107,7 @@ export default function CloseTicketModal({ isOpen, onClose, onConfirm, ticketId 
 
                         <div className="flex items-start gap-3 p-3 bg-primary/5 border border-primary/10 rounded-lg">
                             <AlertCircle className="h-4 w-4 text-primary mt-0.5" />
-                            <p className="text-[11px] text-primary/80 leading-relaxed">
+                            <p className="text-sm text-primary/80 leading-relaxed">
                                 Successful resolutions will be added to the knowledge base to improve future AI suggestions.
                             </p>
                         </div>
