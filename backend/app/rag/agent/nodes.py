@@ -3,6 +3,7 @@
 import logging
 import math
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 from app.rag.core import Embedder, LLM, Reranker, get_supabase_client, settings
@@ -27,8 +28,8 @@ logger = logging.getLogger(__name__)
 
 
 def plan_query(state: RagState) -> dict:
-    """Generate retrieval plan with 2-4 query variants using LLM."""
-    llm = LLM()
+    """Generate retrieval plan with 2-4 query variants using a fast model."""
+    llm = LLM(model=settings.openai_planning_model)
 
     messages = [
         {"role": "system", "content": PLAN_QUERY_SYSTEM},
@@ -43,35 +44,44 @@ def plan_query(state: RagState) -> dict:
 
 
 def retrieve(state: RagState) -> dict:
-    """Embed query variants and call match_corpus RPC, deduplicate by composite key."""
+    """Embed query variants and call match_corpus RPC, deduplicate by composite key.
+
+    Uses batch embedding (single API call) and parallel RPC calls for speed.
+    """
     embedder = Embedder()
     client = get_supabase_client()
 
-    # Composite key: (source_type, source_id)
-    all_candidates: dict[tuple[str, str], CorpusHit] = {}
-
     per_query_k = max(state.top_k, 15)
 
-    # Build RPC params
     source_types_param = None
     if state.input.source_types:
         source_types_param = [st for st in state.input.source_types]
 
-    for variant in state.retrieval_plan.queries:
-        query_embedding = embedder.embed(variant.query)
+    queries = [v.query for v in state.retrieval_plan.queries]
 
+    # Batch-embed all query variants in a single API call
+    embeddings = embedder.embed_batch(queries)
+
+    # Parallel RPC calls via ThreadPoolExecutor
+    def _run_rpc(embedding: list[float]) -> list[dict]:
         rpc_params: dict = {
-            "query_embedding": query_embedding,
+            "query_embedding": embedding,
             "p_top_k": per_query_k,
         }
         if source_types_param:
             rpc_params["p_source_types"] = source_types_param
         if state.input.category:
             rpc_params["p_category"] = state.input.category
+        return client.rpc("match_corpus", rpc_params).execute().data
 
-        result = client.rpc("match_corpus", rpc_params).execute()
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        rpc_results = list(executor.map(_run_rpc, embeddings))
 
-        for row in result.data:
+    # Deduplicate by composite key: (source_type, source_id)
+    all_candidates: dict[tuple[str, str], CorpusHit] = {}
+
+    for rows in rpc_results:
+        for row in rows:
             key = (row["source_type"], row["source_id"])
             if key not in all_candidates:
                 all_candidates[key] = CorpusHit(
@@ -88,7 +98,6 @@ def retrieve(state: RagState) -> dict:
                     updated_at=row.get("updated_at"),
                 )
             else:
-                # Keep highest similarity across query variants
                 existing = all_candidates[key]
                 if row["similarity"] > existing.similarity:
                     all_candidates[key] = existing.model_copy(

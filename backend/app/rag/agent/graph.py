@@ -84,7 +84,14 @@ def run_rag(
     ticket_number: str | None = None,
     conversation_id: str | None = None,
 ) -> RagResult:
-    """Run the QA RAG agent to answer a question.
+    """Run the full QA RAG agent to answer a question (with synthesised answer).
+
+    Use run_rag_retrieval_only() when you only need top hits (e.g. suggested
+    actions) — it skips the write_answer / validate steps and is ~4-5 s faster.
+
+    To add a synthesised answer to a retrieval-only result later, plug
+    write_answer into a new endpoint (e.g. POST /api/conversations/{id}/ask)
+    that accepts a RagResult and generates a copilot-style response.
 
     Args:
         question: User question
@@ -137,6 +144,109 @@ def run_rag(
         return RagResult(
             question=question,
             answer=f"Error processing question: {e!s}",
+            citations=[],
+            status=RagStatus.ERROR,
+            evidence_count=0,
+            retrieval_queries=[],
+        )
+
+
+# ---------------------------------------------------------------------------
+# Retrieval-only graph (fast path for suggested-actions)
+# ---------------------------------------------------------------------------
+
+
+def create_retrieval_graph() -> StateGraph:
+    """Build a lightweight retrieval graph — no answer generation or validation.
+
+    Flow: plan_query -> retrieve -> rerank -> enrich_sources -> log_retrieval -> END
+
+    ~4-5 s faster than create_rag_graph() because it skips write_answer and
+    the validate/retry loop.
+    """
+    workflow = StateGraph(RagState)
+
+    workflow.add_node("plan_query", nodes.plan_query)
+    workflow.add_node("retrieve", nodes.retrieve)
+    workflow.add_node("rerank", nodes.rerank)
+    workflow.add_node("enrich_sources", nodes.enrich_sources)
+    workflow.add_node("log_retrieval", nodes.log_retrieval)
+
+    workflow.set_entry_point("plan_query")
+
+    workflow.add_edge("plan_query", "retrieve")
+    workflow.add_edge("retrieve", "rerank")
+    workflow.add_edge("rerank", "enrich_sources")
+    workflow.add_edge("enrich_sources", "log_retrieval")
+    workflow.add_edge("log_retrieval", END)
+
+    return workflow
+
+
+def run_rag_retrieval_only(
+    question: str,
+    category: str | None = None,
+    source_types: list[CorpusSourceType] | None = None,
+    top_k: int = 5,
+    ticket_number: str | None = None,
+    conversation_id: str | None = None,
+) -> RagResult:
+    """Fast retrieval path — returns top hits without generating an answer.
+
+    Used by the suggested-actions endpoint where only the corpus hits are
+    displayed (title, content, score). To add a synthesised copilot answer
+    on top of these hits, call run_rag() or build a dedicated /ask endpoint.
+
+    Args:
+        question: User question
+        category: Optional category filter
+        source_types: Optional source type filter
+        top_k: Number of evidence items to return (default 5)
+        ticket_number: Optional ticket number for retrieval logging
+        conversation_id: Optional conversation ID for pre-ticket logging
+
+    Returns:
+        RagResult with top_hits populated, answer set to empty string
+    """
+    workflow = create_retrieval_graph()
+    app = workflow.compile()
+
+    input_data = RagInput(
+        question=question,
+        category=category,
+        source_types=source_types,
+        top_k=top_k,
+        ticket_number=ticket_number,
+        conversation_id=conversation_id,
+    )
+
+    initial_state = RagState(input=input_data, top_k=top_k)
+
+    try:
+        final_state = app.invoke(initial_state)
+
+        retrieval_queries: list[str] = []
+        plan = final_state.get("retrieval_plan")
+        if plan:
+            retrieval_queries = [q.query for q in plan.queries]
+
+        evidence = final_state.get("evidence", [])
+
+        return RagResult(
+            question=question,
+            answer="",
+            citations=[],
+            status=final_state.get("status", RagStatus.SUCCESS),
+            evidence_count=len(evidence),
+            retrieval_queries=retrieval_queries,
+            top_hits=evidence,
+        )
+
+    except Exception as e:
+        logger.exception("RAG retrieval failed for question: %s", question[:100])
+        return RagResult(
+            question=question,
+            answer="",
             citations=[],
             status=RagStatus.ERROR,
             evidence_count=0,

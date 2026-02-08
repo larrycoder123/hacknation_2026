@@ -73,10 +73,10 @@ async def get_suggested_actions(conversation_id: str = Path(min_length=1, max_le
     query = ". ".join(query_parts)
 
     try:
-        from app.rag.agent.graph import run_rag
+        from app.rag.agent.graph import run_rag_retrieval_only
 
         result = await asyncio.to_thread(
-            run_rag,
+            run_rag_retrieval_only,
             question=query,
             category=getattr(conversation, "category", None),
             top_k=5,
@@ -97,7 +97,6 @@ async def get_suggested_actions(conversation_id: str = Path(min_length=1, max_le
                 content=hit.content,
                 source=f"{hit.source_type}: {hit.source_id}",
             ))
-        print(actions)
         return actions if actions else MOCK_SUGGESTIONS
 
     except Exception:

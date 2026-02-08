@@ -33,8 +33,10 @@ from app.rag.models import (
 from app.rag.agent import (
     create_gap_detection_graph,
     create_rag_graph,
+    create_retrieval_graph,
     run_gap_detection,
     run_rag,
+    run_rag_retrieval_only,
 )
 
 __all__ = [
@@ -65,7 +67,9 @@ __all__ = [
     "RetrievalOutcome",
     # Pipelines
     "create_rag_graph",
+    "create_retrieval_graph",
     "run_rag",
+    "run_rag_retrieval_only",
     "create_gap_detection_graph",
     "run_gap_detection",
 ]

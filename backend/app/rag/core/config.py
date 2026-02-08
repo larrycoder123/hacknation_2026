@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_embedding_model: str = "text-embedding-3-large"
     openai_chat_model: str = "gpt-5.2"
+    openai_planning_model: str = "gpt-4o-mini"
     embedding_dimension: int = 3072
 
     # Cohere (optional, for reranking)
@@ -28,7 +29,7 @@ class Settings(BaseSettings):
 
     # Retrieval settings
     default_top_k: int = 10
-    max_retrieval_candidates: int = 40
+    max_retrieval_candidates: int = 25
 
     # Learning-adjusted ranking (post-rerank blending)
     # final_score = rerank_score * (1 - blend_weight + blend_weight * learning_score)
