@@ -40,6 +40,10 @@ class GapDetectionInput(BaseModel):
     root_cause: str = Field(default="", description="Root cause")
     transcript: str = Field(default="", description="Conversation transcript")
     script_id: str = Field(default="", description="Script ID used in resolution")
+    retrieval_log_summary: str | None = Field(
+        default=None,
+        description="Summary of what happened during live support (e.g. '3 attempts: 1 RESOLVED, 1 PARTIAL, 1 UNHELPFUL')",
+    )
 
 
 class GapDetectionResult(BaseModel):

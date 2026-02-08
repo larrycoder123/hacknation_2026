@@ -10,6 +10,8 @@ from .conversations import (
 )
 from .learning import (
     ConfidenceUpdate,
+    EventType,
+    GapClassification,
     KBDraftFromGap,
     KBLineageRecord,
     LearningEventRecord,

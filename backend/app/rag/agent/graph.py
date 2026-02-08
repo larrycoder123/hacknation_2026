@@ -205,7 +205,11 @@ def run_gap_detection(input_data: GapDetectionInput) -> GapDetectionResult:
         ticket_number=input_data.ticket_number,
     )
 
-    initial_state = RagState(input=rag_input, top_k=10)
+    initial_state = RagState(
+        input=rag_input,
+        top_k=10,
+        retrieval_log_summary=input_data.retrieval_log_summary,
+    )
 
     try:
         final_state = app.invoke(initial_state)

@@ -1,0 +1,105 @@
+# Database Schema Changes for Learning Pipeline
+
+## 1. Modify `learning_events` table
+
+Add two new columns:
+
+```sql
+-- New column: event type classification
+ALTER TABLE learning_events
+ADD COLUMN event_type TEXT CHECK (event_type IN ('GAP', 'CONTRADICTION', 'CONFIRMED'));
+
+-- New column: existing KB article that contradicts (for CONTRADICTION events)
+ALTER TABLE learning_events
+ADD COLUMN flagged_kb_article_id TEXT;
+
+-- Update existing rows (all current events are GAP type)
+UPDATE learning_events
+SET event_type = 'GAP'
+WHERE proposed_kb_article_id IS NOT NULL AND event_type IS NULL;
+```
+
+### Updated `learning_events` schema:
+
+| Column | Type | Description |
+|---|---|---|
+| event_id | TEXT PK | e.g. `LE-abc123def456` |
+| trigger_ticket_number | TEXT FK | Ticket that triggered the event |
+| detected_gap | TEXT | Description of what was detected |
+| **event_type** | TEXT | **NEW**: `GAP`, `CONTRADICTION`, or `CONFIRMED` |
+| proposed_kb_article_id | TEXT FK | Drafted KB article (GAP + CONTRADICTION) |
+| **flagged_kb_article_id** | TEXT FK | **NEW**: Existing KB that contradicts (CONTRADICTION only) |
+| draft_summary | TEXT | Summary of the draft |
+| final_status | TEXT | `Approved`, `Rejected`, or auto-`Approved` for CONFIRMED |
+| reviewer_role | TEXT | Who reviewed (`System` for auto-approved CONFIRMED events) |
+| event_timestamp | TIMESTAMPTZ | When the event occurred |
+
+## 2. Ensure `retrieval_log` table exists
+
+This may already exist from the RAG component's `rpc_functions.sql`. Verify:
+
+```sql
+CREATE TABLE IF NOT EXISTS retrieval_log (
+    retrieval_id     TEXT PRIMARY KEY,
+    ticket_number    TEXT,
+    attempt_number   INT NOT NULL,
+    query_text       TEXT,
+    source_type      TEXT,
+    source_id        TEXT,
+    similarity_score FLOAT,
+    outcome          TEXT CHECK (outcome IN ('RESOLVED', 'UNHELPFUL', 'PARTIAL')),
+    created_at       TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_retrieval_log_ticket ON retrieval_log(ticket_number);
+```
+
+**Note on outcomes:** Outcomes are NOT set per-answer. When a conversation closes, the backend bulk-updates all retrieval_log rows for that ticket:
+- "Resolved Successfully" → all outcomes set to `RESOLVED`
+- "Not Applicable" → all outcomes set to `UNHELPFUL`
+
+This is done via a simple UPDATE query (no RPC needed):
+```sql
+UPDATE retrieval_log
+SET outcome = 'RESOLVED'   -- or 'UNHELPFUL'
+WHERE ticket_number = $1 AND outcome IS NULL;
+```
+
+## 3. Ensure `match_corpus()` RPC exists
+
+See `backend/app/rag/db/rpc_functions.sql` for the full definition. This RPC is called by the RAG's retrieve node during both live support and gap detection.
+
+## 4. Ensure `update_corpus_confidence` RPC exists
+
+Called by the learning service to bump/drop confidence scores:
+
+```sql
+CREATE OR REPLACE FUNCTION update_corpus_confidence(
+    p_source_type TEXT,
+    p_source_id TEXT,
+    p_delta FLOAT,
+    p_increment_usage BOOLEAN DEFAULT FALSE
+)
+RETURNS TABLE (new_confidence FLOAT, new_usage_count INT) AS $$
+BEGIN
+    RETURN QUERY
+    UPDATE retrieval_corpus
+    SET
+        confidence = GREATEST(0.0, LEAST(1.0, confidence + p_delta)),
+        usage_count = CASE WHEN p_increment_usage THEN usage_count + 1 ELSE usage_count END,
+        updated_at = now()
+    WHERE source_type = p_source_type AND source_id = p_source_id
+    RETURNING confidence AS new_confidence, usage_count AS new_usage_count;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+## Summary of Changes
+
+| Object | Action | Notes |
+|---|---|---|
+| `learning_events.event_type` | ADD COLUMN | `GAP` / `CONTRADICTION` / `CONFIRMED` |
+| `learning_events.flagged_kb_article_id` | ADD COLUMN | For CONTRADICTION events |
+| `retrieval_log` table | VERIFY EXISTS | Created by RAG rpc_functions.sql |
+| `match_corpus()` RPC | VERIFY EXISTS | Created by RAG rpc_functions.sql |
+| `update_corpus_confidence()` RPC | VERIFY/CREATE | Used by learning service |

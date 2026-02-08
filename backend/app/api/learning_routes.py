@@ -22,12 +22,14 @@ router = APIRouter(tags=["learning"])
     response_model=SelfLearningResult,
 )
 async def post_conversation_learn(
-    ticket_number: str = Path(pattern=r"^T-\d{1,10}$"),
+    ticket_number: str = Path(min_length=1, max_length=50),
 ) -> SelfLearningResult:
     """Run the self-learning pipeline after a ticket is closed.
 
-    Processes retrieval_log entries, updates corpus confidence scores,
-    detects knowledge gaps, and drafts new KB articles when needed.
+    Two-stage pipeline:
+    1. Score retrieval logs — update confidence on corpus entries.
+    2. Fresh gap detection — RAG search + LLM classification (SAME/CONTRADICTS/NEW).
+    3. Act — boost confidence, draft replacement, or draft new KB article.
     """
     try:
         return await learning_service.run_post_conversation_learning(ticket_number)
@@ -51,8 +53,9 @@ async def review_learning_event(
 ) -> LearningEventRecord:
     """Approve or reject a drafted KB article from the learning pipeline.
 
-    Approved: activates the KB article in the knowledge base.
-    Rejected: archives the article and removes it from the retrieval corpus.
+    For GAP events: Approved activates the KB article. Rejected archives it.
+    For CONTRADICTION events: Approved replaces old KB with corrected content.
+    Rejected keeps existing KB and discards the draft.
     """
     try:
         return await learning_service.review_learning_event(event_id, body)

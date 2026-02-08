@@ -5,6 +5,11 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+# ── Event type classification ────────────────────────────────────────
+
+EventType = Literal["GAP", "CONTRADICTION", "CONFIRMED"]
+GapClassification = Literal["SAME_KNOWLEDGE", "CONTRADICTS", "NEW_KNOWLEDGE"]
+
 # ── Retrieval log (read from DB) ──────────────────────────────────────
 
 
@@ -74,7 +79,9 @@ class LearningEventRecord(BaseModel):
     event_id: str
     trigger_ticket_number: str
     detected_gap: str
-    proposed_kb_article_id: str
+    event_type: EventType = "GAP"
+    proposed_kb_article_id: str | None = None
+    flagged_kb_article_id: str | None = None
     draft_summary: str
     final_status: Literal["Approved", "Rejected"] | None = None
     reviewer_role: str | None = None
@@ -101,6 +108,8 @@ class SelfLearningResult(BaseModel):
     ticket_number: str
     retrieval_logs_processed: int
     confidence_updates: list[ConfidenceUpdate]
-    gap_detected: bool
+    gap_classification: GapClassification | None = None
+    matched_kb_article_id: str | None = None
+    match_similarity: float | None = None
     learning_event_id: str | None = None
     drafted_kb_article_id: str | None = None

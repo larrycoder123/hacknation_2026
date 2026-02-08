@@ -164,6 +164,9 @@ class RagState(BaseModel):
     status: RagStatus = RagStatus.SUCCESS
     error: str | None = None
 
+    # Extra context (gap detection)
+    retrieval_log_summary: str | None = None
+
     # Token tracking
     tokens: TokenUsage = Field(default_factory=TokenUsage)
 

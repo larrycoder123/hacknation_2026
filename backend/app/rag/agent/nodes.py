@@ -319,6 +319,14 @@ def classify_knowledge(state: RagState) -> dict:
         for hit in state.evidence[:5]
     )
 
+    # Build optional log context
+    log_context = ""
+    if state.retrieval_log_summary:
+        log_context = (
+            f"\nRetrieval log from live support session:\n"
+            f"{state.retrieval_log_summary}\n"
+        )
+
     # The ticket info is encoded in the question (constructed in graph.py)
     messages = [
         {"role": "system", "content": CLASSIFY_KNOWLEDGE_SYSTEM},
@@ -328,7 +336,8 @@ def classify_knowledge(state: RagState) -> dict:
                 f"Ticket query: {state.input.question}\n\n"
                 f"Best similarity score: {best_similarity:.3f}\n"
                 f"Similarity threshold: {settings.gap_similarity_threshold}\n\n"
-                f"Top matching corpus entries:\n{evidence_summary}\n\n"
+                f"Top matching corpus entries:\n{evidence_summary}\n"
+                f"{log_context}\n"
                 "Classify this ticket's knowledge."
             ),
         },

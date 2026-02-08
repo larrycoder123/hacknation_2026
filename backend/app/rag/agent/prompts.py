@@ -56,5 +56,8 @@ Consider:
 - Whether the resolution steps actually match (not just the topic)
 - Whether the root cause described is the same
 - Whether the existing entry would help an agent resolve a similar issue
+- If retrieval log data from the live support session is provided, use it as additional
+  signal (e.g. if the agent searched 4 times and nothing helped, that's strong evidence
+  of a gap; if some searches resolved the issue, existing knowledge may be adequate)
 
 Be conservative: only classify as NEW_KNOWLEDGE if there truly is no adequate coverage."""
