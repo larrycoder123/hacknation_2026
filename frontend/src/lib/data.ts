@@ -4,7 +4,7 @@
  * See app/api/client.ts for the API client implementation.
  */
 
-import { ConversationDisplay, Message, SuggestedAction } from './types';
+import { ConversationDisplay, Message, SuggestedAction } from '@/types';
 
 // Legacy mock data - not used in production
 // The backend now serves this data via the API endpoints

@@ -1,10 +1,11 @@
 "use client";
 
-import { SuggestedAction, ActionType } from '../app/types';
+import { SuggestedAction, ActionType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Sparkles, Terminal, MessageSquare, AlertCircle, RefreshCw, Check } from 'lucide-react';
+import ExpandableText from './ExpandableText';
 
 interface AIAssistantProps {
     suggestions: SuggestedAction[];
@@ -39,9 +40,15 @@ const ActionIcon = ({ type }: { type: ActionType }) => {
     }
 }
 
+/**
+ * AIAssistant Component
+ * 
+ * Displays AI-generated suggestions for the current conversation.
+ * It shows a list of suggested actions (scripts, responses) with confidence scores.
+ */
 export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, onApplySuggestion }: AIAssistantProps) {
     return (
-        <div className="w-[360px] 2xl:w-[420px] h-full flex flex-col bg-background/50 backdrop-blur-xl flex-shrink-0 border border-border rounded-lg shadow-sm overflow-hidden">
+        <div className="w-[420px] 2xl:w-[500px] h-full flex flex-col bg-background/50 backdrop-blur-xl flex-shrink-0 border border-border rounded-lg shadow-sm overflow-hidden">
             <div className="p-4 h-14 border-b border-border/50 flex items-center justify-between bg-background/50">
                 <div className="flex items-center gap-2">
                     <div className="p-1 rounded-md bg-primary/10">
@@ -118,17 +125,21 @@ export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, 
 
                                         {suggestion.type === 'script' && (
                                             <div className="bg-muted/30 rounded-md p-2.5 border border-border/50">
-                                                <code className="text-xs text-foreground/80 font-mono whitespace-pre block overflow-x-auto">
-                                                    {suggestion.content}
-                                                </code>
+                                                <ExpandableText
+                                                    content={suggestion.content}
+                                                    maxLength={150}
+                                                    className="font-mono text-xs"
+                                                />
                                             </div>
                                         )}
 
                                         {suggestion.type === 'response' && (
                                             <div className="bg-muted/30 rounded-md p-2.5 border border-border/50">
-                                                <p className="text-xs text-foreground/80 font-mono whitespace-pre-wrap leading-relaxed">
-                                                    {suggestion.content}
-                                                </p>
+                                                <ExpandableText
+                                                    content={suggestion.content}
+                                                    maxLength={200}
+                                                    isMarkdown={true}
+                                                />
                                             </div>
                                         )}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { ConversationDisplay, Message } from '../app/types';
+import { ConversationDisplay, Message } from '@/types';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Send, X, MoreHorizontal, Paperclip } from 'lucide-react';
+import MarkdownRenderer from './MarkdownRenderer';
 
 interface ConversationDetailProps {
     conversation: ConversationDisplay | null;
@@ -18,6 +19,12 @@ interface ConversationDetailProps {
     onInputChange?: (value: string) => void;
 }
 
+/**
+ * ConversationDetail Component
+ * 
+ * Displays the message history of the selected conversation and allows sending new messages.
+ * Handles auto-scrolling to the latest message.
+ */
 export default function ConversationDetail({ conversation, messages, onSendMessage, onCloseConversation, inputMessage, onInputChange }: ConversationDetailProps) {
     const [internalInput, setInternalInput] = useState('');
     const inputValue = inputMessage !== undefined ? inputMessage : internalInput;
@@ -125,7 +132,7 @@ export default function ConversationDetail({ conversation, messages, onSendMessa
                                             : "bg-zinc-900 text-foreground border border-border"
                                     )}
                                 >
-                                    <div className="whitespace-pre-wrap break-words">{message.content}</div>
+                                    <MarkdownRenderer content={message.content} />
                                 </div>
                             </div>
                         </div>

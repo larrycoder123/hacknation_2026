@@ -1,6 +1,6 @@
 "use client";
 
-import { ConversationDisplay, Priority } from '../app/types';
+import { ConversationDisplay, Priority } from '@/types';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,12 @@ const PriorityBadge = ({ priority }: { priority: Priority }) => {
     );
 };
 
+/**
+ * ConversationQueue Component
+ * 
+ * Displays a list of active conversations with search and filtering capabilities.
+ * Allows selecting a conversation to view its details.
+ */
 export default function ConversationQueue({ conversations, selectedConversationId, onSelectConversation }: ConversationQueueProps) {
     const [searchQuery, setSearchQuery] = useState('');
 

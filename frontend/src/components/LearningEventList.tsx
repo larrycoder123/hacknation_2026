@@ -1,6 +1,6 @@
 "use client";
 
-import { LearningEventDetail, ReviewStatus } from "@/app/types";
+import { LearningEventDetail, ReviewStatus } from "@/types";
 import { cn } from "@/lib/utils";
 import { BookOpen } from "lucide-react";
 

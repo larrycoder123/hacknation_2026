@@ -5,7 +5,7 @@ import {
   LearningEventDetail as LearningEventDetailType,
   ReviewStatus,
   ReviewDecisionPayload,
-} from "../types";
+} from "@/types";
 import LearningEventList from "@/components/LearningEventList";
 import LearningEventDetailComponent from "@/components/LearningEventDetail";
 import { fetchLearningEvents, reviewLearningEvent } from "../api/client";
