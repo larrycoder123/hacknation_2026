@@ -32,6 +32,9 @@ class RetrievalLogEntry(BaseModel):
     outcome: RetrievalOutcome = Field(
         default=RetrievalOutcome.PARTIAL, description="Retrieval outcome"
     )
+    execution_id: str | None = Field(
+        default=None, description="Links to rag_execution_log for pipeline-level metrics"
+    )
     created_at: datetime | None = Field(
         default=None, description="Timestamp of retrieval"
     )

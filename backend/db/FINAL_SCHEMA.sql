@@ -202,10 +202,33 @@ CREATE TABLE retrieval_log (
     source_id      TEXT,                            -- matched corpus source_id (null if no match)
     similarity_score FLOAT,
     outcome        TEXT CHECK (outcome IN ('RESOLVED', 'UNHELPFUL', 'PARTIAL') OR outcome IS NULL),
+    execution_id   TEXT,                            -- links to rag_execution_log (gap detection runs)
     created_at     TIMESTAMPTZ DEFAULT now()
 );
 -- NOTE: no UNIQUE constraint on (ticket_number, attempt_number)
 -- NOTE: no FK on ticket_number (logs exist before ticket is created)
+
+-- Pipeline-level execution log. One row per RAG pipeline run (gap detection only).
+-- Captures latency, token usage, and classification for observability.
+-- Links to retrieval_log via execution_id for drill-down into individual hits.
+CREATE TABLE rag_execution_log (
+    execution_id    TEXT PRIMARY KEY,               -- EXEC-{uuid}
+    graph_type      TEXT NOT NULL CHECK (graph_type IN ('QA', 'GAP_DETECTION')),
+    conversation_id TEXT,
+    ticket_number   TEXT,
+    query           TEXT,
+    total_latency_ms INT,
+    node_latencies  JSONB,                          -- {"plan_query": 820, "retrieve": 1200, ...}
+    tokens_input    INT DEFAULT 0,
+    tokens_output   INT DEFAULT 0,
+    evidence_count  INT DEFAULT 0,
+    top_similarity  FLOAT,
+    top_rerank_score FLOAT,
+    classification  TEXT,                           -- GAP_DETECTION only: SAME_KNOWLEDGE / CONTRADICTS / NEW_KNOWLEDGE
+    status          TEXT DEFAULT 'success',         -- success / error / insufficient_evidence
+    error_message   TEXT,
+    created_at      TIMESTAMPTZ DEFAULT now()
+);
 
 -- ═══════════════════════════════════════════════════════════════════════
 -- INDEXES
@@ -267,6 +290,15 @@ CREATE INDEX idx_retrieval_log_conversation ON retrieval_log (conversation_id);
 CREATE INDEX idx_retrieval_log_outcome      ON retrieval_log (outcome);
 CREATE INDEX idx_retrieval_log_source       ON retrieval_log (source_type, source_id);
 CREATE INDEX idx_retrieval_log_created      ON retrieval_log (created_at DESC);
+
+-- RAG execution log
+CREATE INDEX idx_exec_log_ticket        ON rag_execution_log (ticket_number);
+CREATE INDEX idx_exec_log_conversation  ON rag_execution_log (conversation_id);
+CREATE INDEX idx_exec_log_graph_type    ON rag_execution_log (graph_type);
+CREATE INDEX idx_exec_log_created       ON rag_execution_log (created_at DESC);
+
+-- Retrieval log -> execution log link
+CREATE INDEX idx_retrieval_log_execution ON retrieval_log (execution_id);
 
 -- Full-text search on source tables
 CREATE INDEX idx_conversations_transcript_fts ON conversations

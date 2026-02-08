@@ -171,6 +171,9 @@ class RagState(BaseModel):
     # Extra context (gap detection)
     retrieval_log_summary: str | None = None
 
+    # Execution logging
+    execution_id: str | None = None
+
     # Token tracking
     tokens: TokenUsage = Field(default_factory=TokenUsage)
 

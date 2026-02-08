@@ -466,6 +466,7 @@ def log_retrieval(state: RagState) -> dict:
             source_id=hit.source_id,
             similarity_score=hit.similarity,
             outcome=RetrievalOutcome.PARTIAL,
+            execution_id=state.execution_id,
             created_at=datetime.now(timezone.utc),
         )
         entries.append(entry.model_dump(mode="json"))
