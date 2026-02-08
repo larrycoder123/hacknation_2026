@@ -1,9 +1,18 @@
 """Ticket generation service using LangChain."""
 
+import logging
+import uuid
+from datetime import UTC, datetime
 from typing import List, Optional
+
+from postgrest.exceptions import APIError
+
 from ..core.llm import generate_structured_output
-from ..schemas.tickets import Ticket
+from ..db.client import get_supabase
+from ..schemas.tickets import Priority, Ticket, TicketDBRow
 from ..schemas.messages import Message
+
+logger = logging.getLogger(__name__)
 
 
 def _format_conversation(
@@ -82,3 +91,75 @@ Create a ticket record with:
         ticket.tags = list(set(ticket.tags + custom_tags))
 
     return ticket
+
+
+_MAX_COLLISION_RETRIES = 3
+
+
+def _generate_ticket_number() -> str:
+    """Generate a ticket number in CS-{8-char-hex} format."""
+    return f"CS-{uuid.uuid4().hex[:8].upper()}"
+
+
+def save_ticket_to_db(
+    ticket: Ticket,
+    conversation_id: str,
+    priority: Priority,
+) -> str:
+    """Persist the LLM-generated ticket to Supabase.
+
+    Inserts a minimal ``conversations`` row (required by FK) then the
+    ``tickets`` row.  Retries with a fresh ticket number on unique-constraint
+    collisions.  Returns the generated ``ticket_number``.
+    """
+    sb = get_supabase()
+
+    for attempt in range(_MAX_COLLISION_RETRIES):
+        ticket_number = _generate_ticket_number()
+        now = datetime.now(UTC).isoformat()
+
+        row = TicketDBRow(
+            ticket_number=ticket_number,
+            created_at=now,
+            closed_at=now,
+            status="Closed",
+            priority=priority,
+            subject=ticket.subject,
+            description=ticket.description,
+            resolution=ticket.resolution,
+            tags=",".join(ticket.tags),
+            case_type="Incident",
+        )
+
+        try:
+            # FK: tickets.ticket_number -> conversations.ticket_number
+            sb.table("conversations").insert(
+                {
+                    "ticket_number": ticket_number,
+                    "conversation_id": conversation_id,
+                    "issue_summary": ticket.subject,
+                }
+            ).execute()
+        except APIError as exc:
+            if "duplicate" in str(exc).lower() or "23505" in str(exc):
+                if attempt < _MAX_COLLISION_RETRIES - 1:
+                    logger.warning("Collision on ticket_number %s, retrying", ticket_number)
+                    continue
+            raise
+
+        try:
+            sb.table("tickets").insert(row.model_dump()).execute()
+        except Exception:
+            # Compensating delete to avoid orphaned conversations row
+            try:
+                sb.table("conversations").delete().eq(
+                    "ticket_number", ticket_number
+                ).execute()
+            except Exception:
+                logger.exception("Failed to clean up orphaned conversations row %s", ticket_number)
+            raise
+
+        logger.info("Saved ticket %s for conversation %s", ticket_number, conversation_id)
+        return ticket_number
+
+    raise RuntimeError("Failed to generate a unique ticket number")

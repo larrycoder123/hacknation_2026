@@ -3,7 +3,6 @@ from pydantic import BaseModel, Field
 from .tickets import Ticket
 from .learning import SelfLearningResult
 
-Priority = Literal["High", "Medium", "Low"]
 ConversationStatus = Literal["Open", "Pending", "Resolved", "Closed"]
 
 class Conversation(BaseModel):
