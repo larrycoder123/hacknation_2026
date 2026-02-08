@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
     Conversation,
     Message,
@@ -28,6 +28,7 @@ export function useConversationState() {
 
     const [error, setError] = useState<string | null>(null);
     const [inputMessage, setInputMessage] = useState("");
+    const autoRepliedRef = useRef<Set<string>>(new Set());
 
     // Fetch conversations on mount
     useEffect(() => {
@@ -92,6 +93,28 @@ export function useConversationState() {
             ...prev,
             [selectedConversationId]: [...(prev[selectedConversationId] || []), newMessage],
         }));
+
+        // Demo auto-reply: customer responds once after agent sends a message
+        const convId = selectedConversationId;
+        if (!autoRepliedRef.current.has(convId)) {
+            autoRepliedRef.current.add(convId);
+            setTimeout(() => {
+                const reply: Message = {
+                    id: `m-auto-${Date.now()}`,
+                    conversation_id: convId,
+                    sender: "customer",
+                    content: "That worked perfectly — the issue is resolved now. Thank you so much for the quick help!",
+                    timestamp: new Date().toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    }),
+                };
+                setMessages((prev) => ({
+                    ...prev,
+                    [convId]: [...(prev[convId] || []), reply],
+                }));
+            }, 2500);
+        }
     }, [selectedConversationId]);
 
     const getSuggestions = useCallback(async () => {

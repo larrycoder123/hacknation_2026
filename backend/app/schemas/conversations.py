@@ -15,6 +15,7 @@ class Conversation(BaseModel):
     time_ago: str
     avatar_url: Optional[str] = None
     last_message: Optional[str] = None
+    category: Optional[str] = None
 
 class CloseConversationPayload(BaseModel):
     """Payload for closing a conversation."""

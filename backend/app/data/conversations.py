@@ -58,6 +58,16 @@ MOCK_CONVERSATIONS: dict[str, Conversation] = {
         time_ago="3d",
         last_message="Cache clear fixed it, thanks!",
     ),
+    "1030": Conversation(
+        id="1030",
+        customer_name="Sarah Mitchell",
+        subject="Unit transfer not reflecting in TRACS file",
+        priority="High",
+        status="Open",
+        time_ago="2m",
+        last_message="I need to submit the TRACS file to HUD by end of week.",
+        category="Unit Transfer",
+    ),
 }
 
 MOCK_MESSAGES: dict[str, list[Message]] = {
@@ -204,6 +214,15 @@ MOCK_MESSAGES: dict[str, list[Message]] = {
             sender="customer",
             content="Cache clear fixed it, thanks!",
             timestamp="Monday 9:35 AM",
+        ),
+    ],
+    "1030": [
+        Message(
+            id="m20",
+            conversation_id="1030",
+            sender="customer",
+            content="Hi, I just completed a unit transfer for tenant Williams from Unit 204 to Unit 310 at Heritage Oaks. The transfer shows as complete in PropertySuite but the TRACS file still lists them in the old unit. I need to submit this to HUD by end of week.",
+            timestamp="11:02 AM",
         ),
     ],
 }
