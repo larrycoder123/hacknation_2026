@@ -131,25 +131,6 @@ def save_ticket_to_db(
         )
 
         try:
-            # FK: tickets.ticket_number -> conversations.ticket_number
-            # Use upsert: conversation_id may already exist from mock data
-            # or a previous close attempt. Update ticket_number on conflict.
-            sb.table("conversations").upsert(
-                {
-                    "ticket_number": ticket_number,
-                    "conversation_id": conversation_id,
-                    "issue_summary": ticket.subject,
-                },
-                on_conflict="conversation_id",
-            ).execute()
-        except APIError as exc:
-            if "duplicate" in str(exc).lower() or "23505" in str(exc):
-                if attempt < _MAX_COLLISION_RETRIES - 1:
-                    logger.warning("Collision on ticket_number %s, retrying", ticket_number)
-                    continue
-            raise
-
-        try:
             sb.table("tickets").insert(row.model_dump()).execute()
         except APIError as exc:
             if "23505" in str(exc) and attempt < _MAX_COLLISION_RETRIES - 1:
