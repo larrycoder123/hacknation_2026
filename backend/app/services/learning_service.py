@@ -318,18 +318,22 @@ def _build_log_summary(logs: list[RetrievalLogEntry]) -> str | None:
 def _fetch_ticket_and_conversation(
     ticket_number: str,
 ) -> tuple[dict[str, str | None], dict[str, str | None]]:
-    """Fetch ticket and conversation data from Supabase."""
+    """Fetch ticket and conversation data from Supabase.
+
+    Uses maybe_single() to gracefully handle missing rows (returns empty
+    dict instead of raising PGRST116).
+    """
     sb = get_supabase()
 
     ticket_row = (
-        sb.table("tickets").select("*").eq("ticket_number", ticket_number).single().execute()
+        sb.table("tickets").select("*").eq("ticket_number", ticket_number).maybe_single().execute()
     )
-    ticket_data = cast(dict[str, str | None], ticket_row.data)
+    ticket_data = cast(dict[str, str | None], ticket_row.data or {})
 
     conv_row = (
-        sb.table("conversations").select("*").eq("ticket_number", ticket_number).single().execute()
+        sb.table("conversations").select("*").eq("ticket_number", ticket_number).maybe_single().execute()
     )
-    conv_data = cast(dict[str, str | None], conv_row.data)
+    conv_data = cast(dict[str, str | None], conv_row.data or {})
 
     return ticket_data, conv_data
 

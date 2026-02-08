@@ -159,9 +159,10 @@ async def close_conversation(
     MOCK_CONVERSATIONS[conversation_id] = conversation.model_copy(update={"status": "Resolved"})
 
     # Run self-learning pipeline (synchronous for demo)
-    if ticket and payload.resolution_type == "Resolved Successfully":
+    # Only run if ticket was saved to DB (ticket_number assigned)
+    if ticket and getattr(ticket, "ticket_number", None) and payload.resolution_type == "Resolved Successfully":
         try:
-            ticket_number = getattr(ticket, "ticket_number", conversation_id)
+            ticket_number = ticket.ticket_number
             resolved = payload.resolution_type == "Resolved Successfully"
             learning_result = await learning_service.run_post_conversation_learning(
                 ticket_number,
