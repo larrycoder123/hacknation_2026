@@ -90,7 +90,7 @@ export default function CloseConversationModal({ isOpen, onClose, onConfirm, con
                         </div>
                         <button
                             onClick={handleDone}
-                            className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors mt-2"
+                            className="text-xs text-amber-500 hover:text-amber-400 font-medium transition-colors mt-2"
                         >
                             Dismiss — processing continues in background
                         </button>

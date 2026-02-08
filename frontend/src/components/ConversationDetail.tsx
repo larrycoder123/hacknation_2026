@@ -78,15 +78,17 @@ export default function ConversationDetail({ conversation, messages, onSendMessa
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={onCloseConversation}
-                        className="h-8 w-8 p-0 sm:w-auto sm:px-3 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
-                    >
-                        <X className="h-3.5 w-3.5" />
-                        <span className="hidden sm:inline">Close</span>
-                    </Button>
+                    {conversation.status !== 'Resolved' && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={onCloseConversation}
+                            className="h-8 w-8 p-0 sm:w-auto sm:px-3 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+                        >
+                            <X className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">Close</span>
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -142,38 +144,44 @@ export default function ConversationDetail({ conversation, messages, onSendMessa
             </div>
 
             {/* Input Area */}
-            <div className="p-4 border-t border-border bg-background/50">
-                <div className="relative rounded-lg border border-border bg-zinc-900/50 focus-within:ring-1 focus-within:ring-ring ring-offset-0 focus-within:border-ring transition-all shadow-sm">
-                    <Textarea
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSend();
-                            }
-                        }}
-                        placeholder="Type your reply..."
-                        className="min-h-[80px] w-full border-none bg-transparent shadow-none focus-visible:ring-0 p-3 pb-10 resize-none text-sm placeholder:text-muted-foreground/50 leading-relaxed"
-                    />
-                    <div className="absolute bottom-2 right-2 flex items-center gap-2">
-                        <span className="text-[10px] text-muted-foreground/40 font-medium select-none mr-2 hidden sm:inline-block">
-                            Press Enter to send
-                        </span>
-                        <Button
-                            onClick={handleSend}
-                            disabled={!inputValue.trim()}
-                            size="sm"
-                            className={cn(
-                                "h-7 px-3 text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm rounded-md transition-all",
-                                !inputValue.trim() && "opacity-50"
-                            )}
-                        >
-                            Send Reply
-                        </Button>
+            {conversation.status === 'Resolved' ? (
+                <div className="px-4 py-3 border-t border-border bg-muted/20 flex items-center justify-center">
+                    <p className="text-xs text-muted-foreground">This conversation has been resolved</p>
+                </div>
+            ) : (
+                <div className="p-4 border-t border-border bg-background/50">
+                    <div className="relative rounded-lg border border-border bg-zinc-900/50 focus-within:ring-1 focus-within:ring-ring ring-offset-0 focus-within:border-ring transition-all shadow-sm">
+                        <Textarea
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSend();
+                                }
+                            }}
+                            placeholder="Type your reply..."
+                            className="min-h-[80px] w-full border-none bg-transparent shadow-none focus-visible:ring-0 p-3 pb-10 resize-none text-sm placeholder:text-muted-foreground/50 leading-relaxed"
+                        />
+                        <div className="absolute bottom-2 right-2 flex items-center gap-2">
+                            <span className="text-[10px] text-muted-foreground/40 font-medium select-none mr-2 hidden sm:inline-block">
+                                Press Enter to send
+                            </span>
+                            <Button
+                                onClick={handleSend}
+                                disabled={!inputValue.trim()}
+                                size="sm"
+                                className={cn(
+                                    "h-7 px-3 text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm rounded-md transition-all",
+                                    !inputValue.trim() && "opacity-50"
+                                )}
+                            >
+                                Send Reply
+                            </Button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }
