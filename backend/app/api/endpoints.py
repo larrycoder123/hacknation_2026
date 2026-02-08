@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from ..schemas.actions import SuggestedAction
 from ..schemas.tickets import CloseTicketPayload, CloseTicketResponse, Ticket
-from ..schemas.messages import Message, TicketConversation
+from ..schemas.messages import Message
 from ..schemas.knowledge import KnowledgeArticle
 from ..data.tickets import MOCK_TICKETS, MOCK_CONVERSATIONS
 from ..data.suggestions import MOCK_SUGGESTIONS
@@ -14,13 +14,13 @@ router = APIRouter()
 
 @router.get("/tickets", response_model=List[Ticket])
 async def get_tickets():
-    """Get all tickets."""
+    """Retrieve all support tickets."""
     return list(MOCK_TICKETS.values())
 
 
 @router.get("/tickets/{ticket_id}", response_model=Ticket)
 async def get_ticket(ticket_id: str):
-    """Get a single ticket by ID."""
+    """Retrieve a single ticket by ID."""
     if ticket_id not in MOCK_TICKETS:
         raise HTTPException(status_code=404, detail="Ticket not found")
     return MOCK_TICKETS[ticket_id]
@@ -28,38 +28,25 @@ async def get_ticket(ticket_id: str):
 
 @router.get("/tickets/{ticket_id}/messages", response_model=List[Message])
 async def get_ticket_messages(ticket_id: str):
-    """Get all messages for a ticket."""
+    """Retrieve the conversation history for a ticket."""
     if ticket_id not in MOCK_TICKETS:
         raise HTTPException(status_code=404, detail="Ticket not found")
     return MOCK_CONVERSATIONS.get(ticket_id, [])
 
 
-@router.get("/tickets/{ticket_id}/conversation", response_model=TicketConversation)
-async def get_ticket_conversation(ticket_id: str):
-    """Get complete conversation data for a ticket."""
-    if ticket_id not in MOCK_TICKETS:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-
-    return TicketConversation(
-        ticket_id=ticket_id, messages=MOCK_CONVERSATIONS.get(ticket_id, [])
-    )
-
-
 @router.get("/tickets/{ticket_id}/suggested-actions", response_model=List[SuggestedAction])
 async def get_suggested_actions(ticket_id: str):
-    """Get AI-suggested actions for a ticket."""
+    """Retrieve AI-generated suggested actions for resolving a ticket."""
     return MOCK_SUGGESTIONS
 
 
 @router.post("/tickets/{ticket_id}/close", response_model=CloseTicketResponse)
 async def close_ticket(ticket_id: str, payload: CloseTicketPayload):
     """
-    Close a ticket and optionally generate a knowledge article.
-
-    If add_to_knowledge_base is true, this will:
-    1. Fetch the ticket and conversation
-    2. Use the LLM to generate a knowledge article
-    3. TODO: Store the article in the database
+    Close a ticket and optionally generate a knowledge base article.
+    
+    If add_to_knowledge_base is true and the ticket was resolved successfully,
+    an LLM generates a knowledge article from the conversation.
     """
     if ticket_id not in MOCK_TICKETS:
         raise HTTPException(status_code=404, detail="Ticket not found")

@@ -29,14 +29,6 @@ async def generate_structured_output(
 ) -> T:
     """
     Generate structured output from the LLM.
-
-    Args:
-        prompt: The user prompt
-        output_schema: Pydantic model for the expected output
-        system_prompt: Optional system instructions
-
-    Returns:
-        Parsed Pydantic model instance
     """
     llm = get_llm()
     structured_llm = llm.with_structured_output(output_schema)

@@ -54,16 +54,6 @@ async def generate_knowledge_article(
 ) -> KnowledgeArticle:
     """
     Generate a knowledge article from a resolved ticket conversation.
-
-    Args:
-        ticket_id: ID of the resolved ticket
-        ticket_subject: Subject/title of the ticket
-        messages: List of messages in the conversation
-        resolution_notes: Optional notes from the agent about the resolution
-        custom_tags: Optional list of tags to include
-
-    Returns:
-        Generated KnowledgeArticle instance
     """
     conversation_text = _format_conversation(messages, resolution_notes)
 

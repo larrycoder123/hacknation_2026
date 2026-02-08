@@ -2,7 +2,7 @@
 
 from .actions import SuggestedAction
 from .knowledge import KnowledgeArticle, KnowledgeArticleCreateRequest
-from .messages import Message, TicketConversation, Sender
+from .messages import Message, Sender
 from .tickets import (
     Ticket,
     CloseTicketPayload,
@@ -19,7 +19,6 @@ __all__ = [
     "KnowledgeArticleCreateRequest",
     # Messages
     "Message",
-    "TicketConversation",
     "Sender",
     # Tickets
     "Ticket",
