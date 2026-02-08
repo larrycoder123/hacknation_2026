@@ -47,8 +47,8 @@ create table knowledge_articles (
     tags            text,
     module          text,
     category        text references categories (name),
-    created_at      timestamptz,
-    updated_at      timestamptz,
+    created_at      timestamptz default now(),
+    updated_at      timestamptz default now(),
     status          text default 'Active' check (status in ('Active', 'Draft', 'Archived')),
     source_type     text not null check (source_type in ('SEED_KB', 'SYNTH_FROM_TICKET'))
 );
@@ -114,7 +114,7 @@ create table kb_lineage (
     source_id       text not null,
     relationship    text not null check (relationship in ('CREATED_FROM', 'REFERENCES')),
     evidence_snippet text,
-    event_timestamp timestamptz,
+    event_timestamp timestamptz default now(),
     primary key (kb_article_id, source_type, source_id)
 );
 
@@ -124,11 +124,13 @@ create table learning_events (
     event_id                text primary key,
     trigger_ticket_number   text references tickets (ticket_number),
     detected_gap            text,
+    event_type              text check (event_type in ('GAP', 'CONTRADICTION', 'CONFIRMED')),
     proposed_kb_article_id  text references knowledge_articles (kb_article_id),
+    flagged_kb_article_id   text references knowledge_articles (kb_article_id),  -- existing KB that contradicts (CONTRADICTION events only)
     draft_summary           text,
     final_status            text check (final_status in ('Approved', 'Rejected') or final_status is null),
-    reviewer_role           text check (reviewer_role in ('Tier 3 Support', 'Support Ops Review') or reviewer_role is null),
-    event_timestamp         timestamptz
+    reviewer_role           text check (reviewer_role in ('Tier 3 Support', 'Support Ops Review', 'System') or reviewer_role is null),
+    event_timestamp         timestamptz default now()
 );
 
 ------------------------------------------------------------------------
@@ -174,15 +176,17 @@ create table retrieval_corpus (
 
 -- Per-attempt RAG search log. One row per retrieval attempt within a conversation.
 -- Drives self-learning: outcome feeds back into retrieval_corpus.confidence.
+-- Logs are created with conversation_id during live support (pre-ticket).
+-- On conversation close, ticket_number is stamped onto matching logs.
 create table retrieval_log (
     retrieval_id    text primary key,              -- RET-{uuid}
-    ticket_number   text not null references conversations (ticket_number),
-    attempt_number  int not null,                  -- 1, 2, 3… within the ticket
+    ticket_number   text,                          -- nullable: stamped on close, not at creation time
+    conversation_id text,                          -- set during live support (before ticket exists)
+    attempt_number  int not null,                  -- 1, 2, 3… within the conversation
     query_text      text not null,                 -- what the agent searched for
     source_type     text,                          -- returned corpus row source_type (null if no match)
     source_id       text,                          -- returned corpus row source_id   (null if no match)
     similarity_score float,                        -- cosine similarity of top result
     outcome         text check (outcome in ('RESOLVED', 'UNHELPFUL', 'PARTIAL') or outcome is null),
-    created_at      timestamptz default now(),
-    unique (ticket_number, attempt_number)
+    created_at      timestamptz default now()
 );
