@@ -14,6 +14,7 @@ class Settings(BaseSettings):
 
     app_name: str = "SupportMind Backend"
     debug: bool = False
+    cors_origins: str = "http://localhost:3000"
 
     # LLM configuration
     openai_api_key: str | None = None
