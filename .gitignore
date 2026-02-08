@@ -1,2 +1,28 @@
-.env
+# Environment
 .venv
+.env
+.env.local
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node / Frontend
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/

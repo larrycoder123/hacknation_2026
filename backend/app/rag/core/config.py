@@ -11,12 +11,12 @@ class Settings(BaseSettings):
     # OpenAI
     openai_api_key: str = ""
     openai_embedding_model: str = "text-embedding-3-large"
-    openai_chat_model: str = "gpt-4o"
+    openai_chat_model: str = "gpt-5.2"
     embedding_dimension: int = 3072
 
     # Cohere (optional, for reranking)
     cohere_api_key: str = ""
-    cohere_rerank_model: str = "rerank-english-v3.0"
+    cohere_rerank_model: str = "rerank-v4.0-pro"
 
     # Supabase
     supabase_url: str = ""
