@@ -1,5 +1,7 @@
 """Tests for Presidio-based data sanitization utilities."""
 
+from unittest.mock import patch, MagicMock
+
 import pytest
 from app.services.data_sanitizer import (
     sanitize_text,
@@ -252,3 +254,46 @@ class TestGetDetectedEntities:
         entities = get_detected_entities(text, score_threshold=0.7)
         # Should have no or very few high-confidence matches
         assert len(entities) <= 1
+
+
+class TestPresidioFailures:
+    """Test Presidio exception handlers (lines 211-213, 232-234, 319-321)."""
+
+    @patch("app.services.data_sanitizer._get_analyzer")
+    def test_sanitize_text_analysis_failure_returns_original(self, mock_get_analyzer):
+        """When Presidio analyzer.analyze raises, original text is returned."""
+        mock_analyzer = MagicMock()
+        mock_analyzer.analyze.side_effect = RuntimeError("NLP model failed")
+        mock_get_analyzer.return_value = mock_analyzer
+
+        result = sanitize_text("My email is test@example.com")
+        assert result == "My email is test@example.com"
+
+    @patch("app.services.data_sanitizer._get_anonymizer")
+    @patch("app.services.data_sanitizer._get_analyzer")
+    def test_sanitize_text_anonymization_failure_returns_original(
+        self, mock_get_analyzer, mock_get_anonymizer
+    ):
+        """When Presidio anonymizer.anonymize raises, original text is returned."""
+        mock_analyzer = MagicMock()
+        mock_result = MagicMock()
+        mock_result.entity_type = "EMAIL_ADDRESS"
+        mock_analyzer.analyze.return_value = [mock_result]
+        mock_get_analyzer.return_value = mock_analyzer
+
+        mock_anonymizer = MagicMock()
+        mock_anonymizer.anonymize.side_effect = RuntimeError("Anonymization failed")
+        mock_get_anonymizer.return_value = mock_anonymizer
+
+        result = sanitize_text("My email is test@example.com")
+        assert result == "My email is test@example.com"
+
+    @patch("app.services.data_sanitizer._get_analyzer")
+    def test_get_detected_entities_analysis_failure_returns_empty(self, mock_get_analyzer):
+        """When Presidio analyzer.analyze raises in get_detected_entities, returns []."""
+        mock_analyzer = MagicMock()
+        mock_analyzer.analyze.side_effect = RuntimeError("NLP model failed")
+        mock_get_analyzer.return_value = mock_analyzer
+
+        result = get_detected_entities("My email is test@example.com")
+        assert result == []
