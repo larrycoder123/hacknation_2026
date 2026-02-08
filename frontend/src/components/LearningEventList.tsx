@@ -71,7 +71,15 @@ export default function LearningEventList({
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {isLoading ? (
-          <p className="text-sm text-muted-foreground text-center py-8">Loading...</p>
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="p-3 rounded-md animate-pulse space-y-2">
+              <div className="h-4 bg-muted/60 rounded w-[85%]" />
+              <div className="flex justify-between items-center">
+                <div className="h-3 bg-muted/40 rounded w-24" />
+                <div className="h-3 bg-muted/40 rounded w-10" />
+              </div>
+            </div>
+          ))
         ) : events.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">No events found</p>
         ) : (

@@ -116,8 +116,8 @@ export function useConversationState() {
         }
     }, [selectedConversationId, conversations, messages]);
 
-    const closeActiveConversation = useCallback(async (payload: CloseConversationPayload) => {
-        if (!selectedConversationId) return;
+    const closeActiveConversation = useCallback(async (payload: CloseConversationPayload): Promise<CloseConversationResponse | null> => {
+        if (!selectedConversationId) return null;
 
         try {
             const response: CloseConversationResponse = await closeConversation(payload);
@@ -129,7 +129,7 @@ export function useConversationState() {
                 )
             );
 
-            // System messages
+            // System messages (audit trail in chat)
             const newMessages: Message[] = [];
 
             newMessages.push({
@@ -174,9 +174,12 @@ export function useConversationState() {
                 setError(response.warnings.join("; "));
             }
 
+            return response;
+
         } catch (err) {
             console.error("Failed to close conversation:", err);
             setError("Failed to close conversation.");
+            return null;
         }
     }, [selectedConversationId]);
 

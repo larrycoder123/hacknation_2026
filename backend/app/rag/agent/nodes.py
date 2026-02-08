@@ -49,7 +49,6 @@ def retrieve(state: RagState) -> dict:
     Uses batch embedding (single API call) and parallel RPC calls for speed.
     """
     embedder = Embedder()
-    client = get_supabase_client()
 
     per_query_k = max(state.top_k, 15)
 
@@ -63,7 +62,10 @@ def retrieve(state: RagState) -> dict:
     embeddings = embedder.embed_batch(queries)
 
     # Parallel RPC calls via ThreadPoolExecutor
+    # Each thread needs its own Supabase client (HTTP/2 connections aren't thread-safe)
     def _run_rpc(embedding: list[float]) -> list[dict]:
+        from supabase import create_client
+        thread_client = create_client(settings.supabase_url, settings.supabase_service_role_key)
         rpc_params: dict = {
             "query_embedding": embedding,
             "p_top_k": per_query_k,
@@ -72,7 +74,7 @@ def retrieve(state: RagState) -> dict:
             rpc_params["p_source_types"] = source_types_param
         if state.input.category:
             rpc_params["p_category"] = state.input.category
-        return client.rpc("match_corpus", rpc_params).execute().data
+        return thread_client.rpc("match_corpus", rpc_params).execute().data
 
     with ThreadPoolExecutor(max_workers=4) as executor:
         rpc_results = list(executor.map(_run_rpc, embeddings))
