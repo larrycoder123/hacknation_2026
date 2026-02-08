@@ -30,6 +30,17 @@ class Settings(BaseSettings):
     default_top_k: int = 10
     max_retrieval_candidates: int = 40
 
+    # Learning-adjusted ranking (post-rerank blending)
+    # final_score = rerank_score * (1 - blend_weight + blend_weight * learning_score)
+    # learning_score = confidence_weight * confidence
+    #               + usage_weight * usage_factor
+    #               + freshness_weight * freshness
+    confidence_blend_weight: float = 0.3
+    confidence_signal_weight: float = 0.6
+    usage_signal_weight: float = 0.3
+    freshness_signal_weight: float = 0.1
+    freshness_half_life_days: int = 365
+
     # Gap detection threshold
     gap_similarity_threshold: float = 0.75
 

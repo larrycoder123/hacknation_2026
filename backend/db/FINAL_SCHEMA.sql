@@ -364,7 +364,8 @@ RETURNS TABLE (
     tags        TEXT,
     similarity  FLOAT,
     confidence  FLOAT,
-    usage_count INTEGER
+    usage_count INTEGER,
+    updated_at  TIMESTAMPTZ
 )
 LANGUAGE plpgsql
 AS $$
@@ -380,7 +381,8 @@ BEGIN
         rc.tags,
         (1 - (rc.embedding <=> query_embedding))::FLOAT AS similarity,
         rc.confidence,
-        rc.usage_count
+        rc.usage_count,
+        rc.updated_at
     FROM retrieval_corpus rc
     WHERE
         (p_source_types IS NULL OR rc.source_type = ANY(p_source_types))

@@ -70,8 +70,9 @@ class CorpusHit(BaseModel):
     tags: str | None = Field(default="", description="Tags")
     similarity: float = Field(..., description="Vector similarity score (0-1)")
     rerank_score: float | None = Field(default=None, description="Reranker relevance score")
-    confidence: float = Field(default=0.0, description="Confidence score from corpus")
+    confidence: float = Field(default=0.5, description="Confidence score from corpus")
     usage_count: int = Field(default=0, description="How often this entry has been used")
+    updated_at: str | None = Field(default=None, description="When this entry was last updated")
 
 
 class SourceDetail(BaseModel):
