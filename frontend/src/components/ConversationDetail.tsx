@@ -1,6 +1,6 @@
 "use client";
 
-import { ConversationDisplay, Message } from '../app/types';
+import { ConversationDisplay, Message } from '@/types';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,6 +18,12 @@ interface ConversationDetailProps {
     onInputChange?: (value: string) => void;
 }
 
+/**
+ * ConversationDetail Component
+ * 
+ * Displays the message history of the selected conversation and allows sending new messages.
+ * Handles auto-scrolling to the latest message.
+ */
 export default function ConversationDetail({ conversation, messages, onSendMessage, onCloseConversation, inputMessage, onInputChange }: ConversationDetailProps) {
     const [internalInput, setInternalInput] = useState('');
     const inputValue = inputMessage !== undefined ? inputMessage : internalInput;

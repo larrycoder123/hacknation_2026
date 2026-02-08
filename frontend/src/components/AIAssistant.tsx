@@ -1,6 +1,6 @@
 "use client";
 
-import { SuggestedAction, ActionType } from '../app/types';
+import { SuggestedAction, ActionType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -39,6 +39,12 @@ const ActionIcon = ({ type }: { type: ActionType }) => {
     }
 }
 
+/**
+ * AIAssistant Component
+ * 
+ * Displays AI-generated suggestions for the current conversation.
+ * It shows a list of suggested actions (scripts, responses) with confidence scores.
+ */
 export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, onApplySuggestion }: AIAssistantProps) {
     return (
         <div className="w-[360px] 2xl:w-[420px] h-full flex flex-col bg-background/50 backdrop-blur-xl flex-shrink-0 border border-border rounded-lg shadow-sm overflow-hidden">

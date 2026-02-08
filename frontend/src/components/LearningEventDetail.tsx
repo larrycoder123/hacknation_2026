@@ -5,7 +5,7 @@ import {
   LearningEventDetail as LearningEventDetailType,
   ReviewDecisionPayload,
   FinalStatus,
-} from "@/app/types";
+} from "@/types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { BookOpen } from "lucide-react";
@@ -16,6 +16,12 @@ interface LearningEventDetailProps {
   isReviewing: boolean;
 }
 
+/**
+ * LearningEventDetail Component
+ * 
+ * Displays detailed information about a learning event, including the conversation content,
+ * recommended actions, and potential knowledge gaps.
+ */
 export default function LearningEventDetail({
   event,
   onReview,

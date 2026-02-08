@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { CloseConversationPayload } from '../app/types';
+import { CloseConversationPayload } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
