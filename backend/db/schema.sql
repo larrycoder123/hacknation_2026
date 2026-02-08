@@ -1,14 +1,10 @@
 -- =============================================================================
--- SupportMind: FINAL Database Schema
+-- SupportMind: Database Schema Reference
 -- =============================================================================
--- This file represents the COMPLETE, CURRENT state of the database.
--- Run this on a FRESH Supabase project to set up everything from scratch.
--- If you already ran the migrations (001-004 + db_cleanup.sql), see
--- MIGRATION_CATCHUP.sql below for the remaining changes.
+-- Local documentation of the complete Supabase schema.
+-- Source of truth: Supabase project epvvmdzkmdzsjarxjxux (eu-west-3)
 --
--- Tables: 12
--- RPC functions: 3
--- Indexes: 36+
+-- Tables: 13 | RPC functions: 3 | Indexes: 36+
 -- =============================================================================
 
 -- Enable pgvector extension

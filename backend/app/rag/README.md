@@ -212,7 +212,7 @@ Both graphs share the same retrieval pipeline (nodes 1-4), then diverge:
 | `match_corpus()` | `(query_embedding vector(3072), p_top_k, p_source_types[], p_category, p_similarity_threshold)` | Vector similarity search with optional filtering |
 | `increment_corpus_usage()` | `(p_source_type, p_source_id)` | Bump usage count after successful retrieval |
 
-Deploy these by running `db/rpc_functions.sql` in the Supabase SQL Editor.
+These are already deployed in Supabase. See `backend/db/schema.sql` for the full definitions.
 
 ## Configuration
 
@@ -255,10 +255,6 @@ app/rag/
 │   ├── prompts.py             # 3 versioned prompt templates
 │   ├── nodes.py               # 7 node functions (plan, retrieve, rerank, enrich, answer, classify, log)
 │   └── graph.py               # QA graph + gap detection graph + entry points
-│
-├── db/                        # Database setup
-│   ├── rpc_functions.sql      # match_corpus() RPC + retrieval_log table + increment_corpus_usage()
-│   └── setup_guide.md         # Supabase setup instructions
 │
 └── tests/                     # 37 tests, all passing
     ├── test_rag.py            # Model validation (25 tests)
@@ -319,7 +315,7 @@ export SUPABASE_SERVICE_ROLE_KEY=eyJ...
 export COHERE_API_KEY=...  # optional
 
 # 3. Deploy RPC functions to Supabase
-# Paste db/rpc_functions.sql into Supabase SQL Editor and run
+# RPC functions are already deployed — see backend/db/schema.sql for reference
 
 # 4. Verify
 python -c "from app.rag import run_rag, run_gap_detection; print('OK')"
