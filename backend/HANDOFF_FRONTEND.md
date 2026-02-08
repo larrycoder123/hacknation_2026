@@ -1,37 +1,43 @@
 # Frontend Changes Needed for Learning Pipeline Integration
 
-## 1. New Endpoint: Ask Copilot
+## 1. Suggested Actions (existing, now RAG-powered)
 
-The backend exposes a RAG-powered question answering endpoint for live support.
+The existing `GET /api/conversations/{id}/suggested-actions` endpoint is now powered by RAG instead of mock data. **No frontend changes needed** — the response format is identical.
+
+The backend automatically:
+1. Extracts context from the conversation (subject + last customer message)
+2. Runs RAG to search scripts, KB articles, and ticket resolutions
+3. Maps the top hits to `SuggestedAction[]` format
 
 ```
-POST /api/conversations/{conversation_id}/ask
-Content-Type: application/json
+GET /api/conversations/{conversation_id}/suggested-actions
 
-{
-  "question": "How do I fix the property date sync issue?",
-  "ticket_number": "CS-38908386"       // optional, for retrieval logging
-}
-
-Response:
-{
-  "answer": "To resolve the property date sync issue...",
-  "citations": [
-    {
-      "source_type": "SCRIPT",
-      "source_id": "SCRIPT-0293",
-      "title": "Date Advance Fix Script",
-      "quote": "Relevant excerpt..."
-    }
-  ],
-  "confidence": "medium",
-  "retrieval_queries": ["property date sync fix", ...]
-}
+Response (unchanged format):
+[
+  {
+    "id": "SCRIPT-0293",
+    "type": "script",                    // "script" | "response" | "action"
+    "confidence_score": 0.95,
+    "title": "Date Advance Fix Script",
+    "description": "Run this backend data-fix script to resolve...",
+    "content": "use <DATABASE>\ngo\n\nupdate ...",
+    "source": "SCRIPT: SCRIPT-0293"
+  },
+  {
+    "id": "KB-3FFBFE3C70",
+    "type": "response",
+    "confidence_score": 0.82,
+    "title": "Advance Property Date Troubleshooting",
+    "description": "Steps to resolve property date sync issues...",
+    "content": "...",
+    "source": "KB: KB-3FFBFE3C70"
+  }
+]
 ```
 
-**Frontend needs:** Replace the mock suggested-actions call with this endpoint. Show the answer + citations in the copilot panel.
+Type mapping: `SCRIPT` → `"script"`, `KB` → `"response"`, `TICKET_RESOLUTION` → `"action"`
 
-No per-answer feedback is needed — outcomes are set automatically when the conversation closes.
+Falls back to mock suggestions if RAG is unavailable.
 
 ## 2. Close Conversation (existing, response extended)
 
@@ -50,8 +56,9 @@ Request (unchanged):
 **What happens on close:**
 1. Agent provides resolution notes describing what they did
 2. LLM generates a structured Ticket from conversation + notes
-3. All retrieval_log entries for this ticket get bulk-set to RESOLVED or UNHELPFUL (based on resolution_type)
-4. Learning pipeline runs synchronously:
+3. Ticket is saved to the database (ticket_number assigned)
+4. All retrieval_log entries for this ticket get bulk-set to RESOLVED or UNHELPFUL (based on resolution_type)
+5. Learning pipeline runs synchronously:
    - Stage 1: Updates confidence on corpus entries based on outcomes
    - Stage 2: Fresh RAG search using the ticket's resolution as query
    - Stage 3: Classifies as SAME_KNOWLEDGE / CONTRADICTS / NEW_KNOWLEDGE and acts
@@ -62,6 +69,7 @@ Response (extended):
   "status": "success",
   "message": "Conversation conv-123 closed successfully",
   "ticket": {
+    "ticket_number": "CS-A1B2C3D4",
     "subject": "Unable to advance property date",
     "description": "...",
     "resolution": "Applied backend data-fix script...",
@@ -69,6 +77,7 @@ Response (extended):
     "category": "Advance Property Date",
     ...
   },
+  "warnings": [],
   "learning_result": {
     "ticket_number": "CS-38908386",
     "retrieval_logs_processed": 3,
@@ -81,6 +90,11 @@ Response (extended):
   }
 }
 ```
+
+**New fields in response:**
+- `ticket.ticket_number` — DB-assigned ID (e.g. `CS-A1B2C3D4`)
+- `warnings` — array of warning strings (e.g. DB save failures). Show as warning toasts if non-empty.
+- `learning_result` — result of the self-learning pipeline (null if skipped or failed)
 
 **Frontend needs:** After close, show a toast/banner based on `gap_classification`:
 - `SAME_KNOWLEDGE` — "Knowledge confirmed - existing article boosted"
@@ -114,7 +128,7 @@ Content-Type: application/json
 
 | Endpoint | Method | Status | Purpose |
 |---|---|---|---|
-| `/api/conversations/{id}/ask` | POST | NEW | RAG-powered copilot answers |
-| `/api/conversations/{id}/close` | POST | MODIFIED | Now runs learning pipeline, returns `learning_result` |
+| `/api/conversations/{id}/suggested-actions` | GET | MODIFIED (same format) | Now RAG-powered instead of mock data |
+| `/api/conversations/{id}/close` | POST | MODIFIED | Now saves ticket to DB, runs learning pipeline, returns `learning_result` + `warnings` |
 | `/api/tickets/{id}/learn` | POST | EXISTS | Manual learning trigger (kept for testing) |
 | `/api/learning-events/{id}/review` | POST | EXISTS | Approve/reject drafted KB |

@@ -1,10 +1,8 @@
 import asyncio
 import logging
 from typing import List, Optional
-from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Path
-from pydantic import BaseModel, Field
 
 from ..data.conversations import MOCK_CONVERSATIONS, MOCK_MESSAGES
 from ..data.suggestions import MOCK_SUGGESTIONS
@@ -19,24 +17,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-
-# ── Request / Response models for /ask ───────────────────────────────
-
-
-class AskCopilotRequest(BaseModel):
-    """Payload for asking the copilot a question."""
-
-    question: str = Field(min_length=1, max_length=2000)
-    ticket_number: str | None = Field(default=None, max_length=50)
-
-
-class AskCopilotResponse(BaseModel):
-    """Response from the copilot RAG pipeline."""
-
-    answer: str
-    citations: list[dict] = Field(default_factory=list)
-    confidence: str = "medium"
-    retrieval_queries: list[str] = Field(default_factory=list)
+# Source type to SuggestedAction type mapping
+_SOURCE_TYPE_MAP = {"SCRIPT": "script", "KB": "response", "TICKET_RESOLUTION": "action"}
 
 
 # ── Conversation endpoints ───────────────────────────────────────────
@@ -66,61 +48,58 @@ async def get_conversation_messages(conversation_id: str = Path(min_length=1, ma
 
 @router.get("/conversations/{conversation_id}/suggested-actions", response_model=List[SuggestedAction])
 async def get_suggested_actions(conversation_id: str = Path(min_length=1, max_length=50)):
-    """Retrieve AI-generated suggested actions for resolving a conversation."""
-    return MOCK_SUGGESTIONS
+    """Retrieve AI-generated suggested actions for resolving a conversation.
 
+    Uses RAG to search the retrieval_corpus (scripts, KB articles, ticket
+    resolutions) based on the conversation context and returns the top hits
+    as suggested actions for the support agent.
 
-# ── Copilot endpoint ─────────────────────────────────────────────────
-
-
-@router.post(
-    "/conversations/{conversation_id}/ask",
-    response_model=AskCopilotResponse,
-)
-async def ask_copilot(
-    conversation_id: str = Path(min_length=1, max_length=50),
-    body: AskCopilotRequest = ...,
-) -> AskCopilotResponse:
-    """Ask the Customer Support Copilot a question using RAG.
-
-    Searches the retrieval_corpus (scripts, KB articles, ticket resolutions)
-    and returns an answer with citations. Each call writes to retrieval_log
-    for the learning pipeline to use later.
+    Falls back to mock suggestions if RAG is unavailable.
     """
     if conversation_id not in MOCK_CONVERSATIONS:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
     conversation = MOCK_CONVERSATIONS[conversation_id]
+    messages = MOCK_MESSAGES.get(conversation_id, [])
+
+    # Build query from conversation context
+    query_parts = [conversation.subject]
+    # Add last customer message for more context
+    for msg in reversed(messages):
+        if msg.sender == "customer":
+            query_parts.append(msg.content[:300])
+            break
+    query = ". ".join(query_parts)
 
     try:
         from app.rag.agent.graph import run_rag
 
-        result = run_rag(
-            question=body.question,
+        result = await asyncio.to_thread(
+            run_rag,
+            question=query,
             category=getattr(conversation, "category", None),
-            ticket_number=body.ticket_number,
+            top_k=5,
         )
 
-        citations = [
-            {
-                "source_type": c.source_type,
-                "source_id": c.source_id,
-                "title": c.title,
-                "quote": c.quote,
-            }
-            for c in result.citations
-        ]
+        actions: list[SuggestedAction] = []
+        for hit in result.top_hits:
+            action_type = _SOURCE_TYPE_MAP.get(hit.source_type, "action")
+            score = hit.rerank_score if hit.rerank_score is not None else hit.similarity
+            actions.append(SuggestedAction(
+                id=hit.source_id,
+                type=action_type,
+                confidence_score=round(score, 2),
+                title=hit.title or hit.source_id,
+                description=hit.content[:200] + "..." if len(hit.content) > 200 else hit.content,
+                content=hit.content,
+                source=f"{hit.source_type}: {hit.source_id}",
+            ))
 
-        return AskCopilotResponse(
-            answer=result.answer,
-            citations=citations,
-            confidence=getattr(result, "confidence", "medium"),
-            retrieval_queries=result.retrieval_queries,
-        )
+        return actions if actions else MOCK_SUGGESTIONS
 
     except Exception:
-        logger.exception("RAG failed for conversation %s", conversation_id)
-        raise HTTPException(status_code=500, detail="Copilot query failed")
+        logger.exception("RAG failed for conversation %s, falling back to mock", conversation_id)
+        return MOCK_SUGGESTIONS
 
 
 # ── Close conversation ───────────────────────────────────────────────
@@ -145,6 +124,7 @@ async def close_conversation(
 
     ticket: Optional[Ticket] = None
     learning_result: Optional[SelfLearningResult] = None
+    warnings: list[str] = []
 
     # Generate ticket if requested
     if payload.create_ticket and payload.resolution_type == "Resolved Successfully":
@@ -156,8 +136,20 @@ async def close_conversation(
                 resolution_notes=payload.notes,
             )
 
-            # TODO: Save ticket to database
             logger.info("Generated ticket for conversation %s", conversation_id)
+
+            # Persist to DB so the self-learning pipeline can pick it up
+            try:
+                tn = await asyncio.to_thread(
+                    ticket_service.save_ticket_to_db,
+                    ticket,
+                    conversation_id,
+                    conversation.priority,
+                )
+                ticket.ticket_number = tn
+            except Exception:
+                logger.exception("Failed to save ticket to DB for conversation %s", conversation_id)
+                warnings.append("Ticket was generated but could not be saved to the database.")
 
         except Exception:
             logger.exception("Failed to generate ticket for conversation %s", conversation_id)
@@ -187,4 +179,5 @@ async def close_conversation(
         message=f"Conversation {conversation_id} closed successfully",
         ticket=ticket,
         learning_result=learning_result,
+        warnings=warnings,
     )

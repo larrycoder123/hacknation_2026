@@ -1,6 +1,6 @@
 from typing import Optional, Literal
 from pydantic import BaseModel, Field
-from .tickets import Ticket
+from .tickets import Priority, Ticket
 from .learning import SelfLearningResult
 
 ConversationStatus = Literal["Open", "Pending", "Resolved", "Closed"]
@@ -29,3 +29,4 @@ class CloseConversationResponse(BaseModel):
     message: str
     ticket: Optional[Ticket] = None
     learning_result: Optional[SelfLearningResult] = None
+    warnings: list[str] = []
