@@ -54,6 +54,7 @@ export interface CloseConversationPayload {
 }
 
 export interface Ticket {
+  ticket_number?: string;
   subject: string;
   description: string;
   resolution: string;
@@ -65,10 +66,33 @@ export interface Ticket {
   internal_notes?: string;
 }
 
+export interface ConfidenceUpdate {
+  source_type: string;
+  source_id: string;
+  delta: number;
+  new_confidence: number;
+  new_usage_count: number;
+}
+
+export type GapClassification = 'SAME_KNOWLEDGE' | 'CONTRADICTS' | 'NEW_KNOWLEDGE';
+
+export interface SelfLearningResult {
+  ticket_number: string;
+  retrieval_logs_processed: number;
+  confidence_updates: ConfidenceUpdate[];
+  gap_classification?: GapClassification;
+  matched_kb_article_id?: string;
+  match_similarity?: number;
+  learning_event_id?: string;
+  drafted_kb_article_id?: string;
+}
+
 export interface CloseConversationResponse {
   status: string;
   message: string;
   ticket?: Ticket;
+  warnings: string[];
+  learning_result?: SelfLearningResult;
 }
 
 // Utility function to convert backend conversation to display format

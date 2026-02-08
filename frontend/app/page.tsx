@@ -155,10 +155,45 @@ export default function Home() {
         [selectedConversationId]: [...(prev[selectedConversationId] || []), systemMessage],
       }));
 
-      // Log ticket if generated
-      if (response.ticket) {
-        console.log("Ticket generated:", response.ticket);
-        // You could show a toast or modal here to display the ticket
+      // Show ticket number as system message
+      if (response.ticket?.ticket_number) {
+        const ticketMsg: Message = {
+          id: `sys-ticket-${Date.now()}`,
+          conversation_id: selectedConversationId,
+          sender: "system",
+          content: `Ticket created: ${response.ticket.ticket_number}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        };
+        setMessages((prev) => ({
+          ...prev,
+          [selectedConversationId]: [...(prev[selectedConversationId] || []), ticketMsg],
+        }));
+      }
+
+      // Show learning result as system message
+      if (response.learning_result?.gap_classification) {
+        const classificationMessages: Record<string, string> = {
+          SAME_KNOWLEDGE: "Knowledge confirmed — existing article boosted",
+          NEW_KNOWLEDGE: "Knowledge gap detected — new KB article drafted for review",
+          CONTRADICTS: "Contradiction detected — existing KB flagged for review",
+        };
+        const learningMsg: Message = {
+          id: `sys-learn-${Date.now()}`,
+          conversation_id: selectedConversationId,
+          sender: "system",
+          content: classificationMessages[response.learning_result.gap_classification]
+            || "Learning pipeline completed",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        };
+        setMessages((prev) => ({
+          ...prev,
+          [selectedConversationId]: [...(prev[selectedConversationId] || []), learningMsg],
+        }));
+      }
+
+      // Show warnings via error banner
+      if (response.warnings?.length) {
+        setError(response.warnings.join("; "));
       }
     } catch (error) {
       console.error("Failed to close conversation:", error);
