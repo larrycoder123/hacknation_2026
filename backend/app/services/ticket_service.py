@@ -108,9 +108,8 @@ def save_ticket_to_db(
 ) -> str:
     """Persist the LLM-generated ticket to Supabase.
 
-    Inserts a minimal ``conversations`` row (required by FK) then the
-    ``tickets`` row.  Retries with a fresh ticket number on unique-constraint
-    collisions.  Returns the generated ``ticket_number``.
+    Inserts a ``tickets`` row with a generated ticket number.
+    Retries on unique-constraint collisions.  Returns the ``ticket_number``.
     """
     sb = get_supabase()
 
@@ -132,31 +131,11 @@ def save_ticket_to_db(
         )
 
         try:
-            # FK: tickets.ticket_number -> conversations.ticket_number
-            sb.table("conversations").insert(
-                {
-                    "ticket_number": ticket_number,
-                    "conversation_id": conversation_id,
-                    "issue_summary": ticket.subject,
-                }
-            ).execute()
-        except APIError as exc:
-            if "duplicate" in str(exc).lower() or "23505" in str(exc):
-                if attempt < _MAX_COLLISION_RETRIES - 1:
-                    logger.warning("Collision on ticket_number %s, retrying", ticket_number)
-                    continue
-            raise
-
-        try:
             sb.table("tickets").insert(row.model_dump()).execute()
-        except Exception:
-            # Compensating delete to avoid orphaned conversations row
-            try:
-                sb.table("conversations").delete().eq(
-                    "ticket_number", ticket_number
-                ).execute()
-            except Exception:
-                logger.exception("Failed to clean up orphaned conversations row %s", ticket_number)
+        except APIError as exc:
+            if "23505" in str(exc) and attempt < _MAX_COLLISION_RETRIES - 1:
+                logger.warning("Collision on ticket_number %s, retrying", ticket_number)
+                continue
             raise
 
         logger.info("Saved ticket %s for conversation %s", ticket_number, conversation_id)

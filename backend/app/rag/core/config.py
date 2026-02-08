@@ -1,8 +1,12 @@
 """Configuration management for RAG component."""
 
-import os
 from functools import lru_cache
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
+
+# .env lives at the project root (one level above backend/)
+_ENV_FILE = str(Path(__file__).resolve().parents[4] / ".env")
 
 
 class Settings(BaseSettings):
@@ -29,7 +33,7 @@ class Settings(BaseSettings):
     # Gap detection threshold
     gap_similarity_threshold: float = 0.75
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
+    model_config = {"env_file": _ENV_FILE, "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 @lru_cache

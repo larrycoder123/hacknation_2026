@@ -136,6 +136,8 @@ async def close_conversation(
                 messages=messages,
                 resolution_notes=payload.notes,
             )
+            # Clear any LLM-generated ticket_number — only the DB-assigned one matters
+            ticket.ticket_number = None
 
             logger.info("Generated ticket for conversation %s", conversation_id)
 
@@ -158,9 +160,9 @@ async def close_conversation(
     # Update conversation status in mock data
     MOCK_CONVERSATIONS[conversation_id] = conversation.model_copy(update={"status": "Resolved"})
 
-    # Run self-learning pipeline (synchronous for demo)
-    # Only run if ticket was saved to DB (ticket_number assigned)
-    if ticket and getattr(ticket, "ticket_number", None) and payload.resolution_type == "Resolved Successfully":
+    # Run self-learning pipeline only if ticket was saved to DB
+    ticket_saved = ticket is not None and ticket.ticket_number is not None
+    if ticket_saved and payload.resolution_type == "Resolved Successfully":
         try:
             ticket_number = ticket.ticket_number
             resolved = payload.resolution_type == "Resolved Successfully"
