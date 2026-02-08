@@ -1,12 +1,11 @@
-"use client";
-
 import { useState } from "react";
 import { Ticket, Message, SuggestedAction, CloseTicketPayload } from "./types";
-import { MOCK_TICKETS, MOCK_MESSAGES, MOCK_SUGGESTIONS } from "./data";
+import { MOCK_TICKETS, MOCK_MESSAGES } from "./data";
 import TicketQueue from "../components/TicketQueue";
 import TicketDetail from "../components/TicketDetail";
 import AIAssistant from "../components/AIAssistant";
 import CloseTicketModal from "../components/CloseTicketModal";
+import { fetchSuggestedActions, closeTicket } from "./api/client";
 
 export default function Home() {
   const [tickets, setTickets] = useState<Ticket[]>(MOCK_TICKETS);
@@ -45,13 +44,18 @@ export default function Home() {
     }));
   };
 
-  const handleGetSuggestions = () => {
+  const handleGetSuggestions = async () => {
+    if (!selectedTicketId) return;
     setIsSuggestionsLoading(true);
-    // Simulate API delay
-    setTimeout(() => {
-      setSuggestions(MOCK_SUGGESTIONS);
+    try {
+      const actions = await fetchSuggestedActions(selectedTicketId);
+      setSuggestions(actions);
+    } catch (error) {
+      console.error("Failed to fetch suggestions:", error);
+      // Optional: Add toast notification here
+    } finally {
       setIsSuggestionsLoading(false);
-    }, 1200);
+    }
   };
 
   const handleApplySuggestion = (suggestion: SuggestedAction) => {
@@ -76,25 +80,32 @@ export default function Home() {
     }
   };
 
-  const handleCloseTicket = (payload: CloseTicketPayload) => {
+  const handleCloseTicket = async (payload: CloseTicketPayload) => {
     if (!selectedTicketId) return;
 
-    setTickets((prev) =>
-      prev.map(t => t.id === selectedTicketId ? { ...t, status: 'Resolved' } : t)
-    );
+    try {
+      await closeTicket(payload);
 
-    const systemMessage: Message = {
-      id: `sys-${Date.now()}`,
-      ticketId: selectedTicketId,
-      sender: 'system',
-      content: `Ticket closed by agent. Resolution: ${payload.resolution_type}. Notes: ${payload.notes || 'None'}`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
+      setTickets((prev) =>
+        prev.map(t => t.id === selectedTicketId ? { ...t, status: 'Resolved' } : t)
+      );
 
-    setMessages((prev) => ({
-      ...prev,
-      [selectedTicketId]: [...(prev[selectedTicketId] || []), systemMessage],
-    }));
+      const systemMessage: Message = {
+        id: `sys-${Date.now()}`,
+        ticketId: selectedTicketId,
+        sender: 'system',
+        content: `Ticket closed by agent. Resolution: ${payload.resolution_type}. Notes: ${payload.notes || 'None'}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+
+      setMessages((prev) => ({
+        ...prev,
+        [selectedTicketId]: [...(prev[selectedTicketId] || []), systemMessage],
+      }));
+    } catch (error) {
+      console.error("Failed to close ticket:", error);
+      // Optional: Add toast notification here
+    }
   };
 
   return (
