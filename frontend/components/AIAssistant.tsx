@@ -57,7 +57,7 @@ export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, 
                         <div className="space-y-1 max-w-[240px]">
                             <h3 className="text-base font-medium text-foreground">No suggestions yet</h3>
                             <p className="text-sm text-muted-foreground">
-                                Analyze the ticket to get relevant scripts, knowledge base articles, and actions.
+                                Analyze the conversation to get relevant scripts, tickets, and actions.
                             </p>
                         </div>
                         <Button
@@ -65,7 +65,7 @@ export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, 
                             className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
                             size="sm"
                         >
-                            Analyze Ticket
+                            Analyze Conversation
                         </Button>
                     </div>
                 ) : (

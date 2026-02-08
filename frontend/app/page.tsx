@@ -2,31 +2,31 @@
 
 import { useState, useEffect } from "react";
 import {
-  Ticket,
+  Conversation,
   Message,
   SuggestedAction,
-  CloseTicketPayload,
-  TicketDisplay,
-  toTicketDisplay,
-  CloseTicketResponse
+  CloseConversationPayload,
+  ConversationDisplay,
+  toConversationDisplay,
+  CloseConversationResponse
 } from "./types";
-import TicketQueue from "../components/TicketQueue";
-import TicketDetail from "../components/TicketDetail";
+import ConversationQueue from "../components/ConversationQueue";
+import ConversationDetail from "../components/ConversationDetail";
 import AIAssistant from "../components/AIAssistant";
-import CloseTicketModal from "../components/CloseTicketModal";
+import CloseConversationModal from "../components/CloseConversationModal";
 import {
-  fetchTickets,
-  fetchTicketMessages,
+  fetchConversations,
+  fetchConversationMessages,
   fetchSuggestedActions,
-  closeTicket
+  closeConversation
 } from "./api/client";
 
 export default function Home() {
-  const [tickets, setTickets] = useState<TicketDisplay[]>([]);
-  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<ConversationDisplay[]>([]);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [suggestions, setSuggestions] = useState<SuggestedAction[]>([]);
-  const [isTicketsLoading, setIsTicketsLoading] = useState(true);
+  const [isConversationsLoading, setIsConversationsLoading] = useState(true);
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
@@ -34,38 +34,38 @@ export default function Home() {
   // Lifted state for the input box
   const [inputMessage, setInputMessage] = useState("");
 
-  const selectedTicket = tickets.find((t) => t.id === selectedTicketId) || null;
-  const currentMessages = selectedTicketId ? messages[selectedTicketId] || [] : [];
+  const selectedConversation = conversations.find((c) => c.id === selectedConversationId) || null;
+  const currentMessages = selectedConversationId ? messages[selectedConversationId] || [] : [];
 
-  // Fetch tickets from backend on mount
+  // Fetch conversations from backend on mount
   useEffect(() => {
-    const loadTickets = async () => {
+    const loadConversations = async () => {
       try {
-        const backendTickets = await fetchTickets();
-        setTickets(backendTickets.map(toTicketDisplay));
+        const backendConversations = await fetchConversations();
+        setConversations(backendConversations.map(toConversationDisplay));
       } catch (error) {
-        console.error("Failed to fetch tickets:", error);
+        console.error("Failed to fetch conversations:", error);
       } finally {
-        setIsTicketsLoading(false);
+        setIsConversationsLoading(false);
       }
     };
-    loadTickets();
+    loadConversations();
   }, []);
 
-  // Fetch messages when a ticket is selected
+  // Fetch messages when a conversation is selected
   useEffect(() => {
-    if (!selectedTicketId) return;
+    if (!selectedConversationId) return;
 
-    // Check if we already have messages for this ticket
-    if (messages[selectedTicketId]) return;
+    // Check if we already have messages for this conversation
+    if (messages[selectedConversationId]) return;
 
     const loadMessages = async () => {
       setIsMessagesLoading(true);
       try {
-        const ticketMessages = await fetchTicketMessages(selectedTicketId);
+        const conversationMessages = await fetchConversationMessages(selectedConversationId);
         setMessages((prev) => ({
           ...prev,
-          [selectedTicketId]: ticketMessages,
+          [selectedConversationId]: conversationMessages,
         }));
       } catch (error) {
         console.error("Failed to fetch messages:", error);
@@ -74,20 +74,20 @@ export default function Home() {
       }
     };
     loadMessages();
-  }, [selectedTicketId, messages]);
+  }, [selectedConversationId, messages]);
 
-  const handleSelectTicket = (id: string) => {
-    setSelectedTicketId(id);
-    setSuggestions([]); // Reset suggestions on ticket switch
+  const handleSelectConversation = (id: string) => {
+    setSelectedConversationId(id);
+    setSuggestions([]); // Reset suggestions on conversation switch
     setInputMessage(""); // Reset input
   };
 
   const handleSendMessage = (content: string) => {
-    if (!selectedTicketId) return;
+    if (!selectedConversationId) return;
 
     const newMessage: Message = {
       id: `m${Date.now()}`,
-      ticket_id: selectedTicketId,
+      conversation_id: selectedConversationId,
       sender: "agent",
       content,
       timestamp: new Date().toLocaleTimeString([], {
@@ -98,15 +98,15 @@ export default function Home() {
 
     setMessages((prev) => ({
       ...prev,
-      [selectedTicketId]: [...(prev[selectedTicketId] || []), newMessage],
+      [selectedConversationId]: [...(prev[selectedConversationId] || []), newMessage],
     }));
   };
 
   const handleGetSuggestions = async () => {
-    if (!selectedTicketId) return;
+    if (!selectedConversationId) return;
     setIsSuggestionsLoading(true);
     try {
-      const actions = await fetchSuggestedActions(selectedTicketId);
+      const actions = await fetchSuggestedActions(selectedConversationId);
       setSuggestions(actions);
     } catch (error) {
       console.error("Failed to fetch suggestions:", error);
@@ -133,25 +133,25 @@ export default function Home() {
     }
   };
 
-  const handleCloseTicket = async (payload: CloseTicketPayload) => {
-    if (!selectedTicketId) return;
+  const handleCloseConversation = async (payload: CloseConversationPayload) => {
+    if (!selectedConversationId) return;
 
     try {
-      const response: CloseTicketResponse = await closeTicket(payload);
+      const response: CloseConversationResponse = await closeConversation(payload);
 
-      // Update ticket status locally
-      setTickets((prev) =>
-        prev.map((t) =>
-          t.id === selectedTicketId ? { ...t, status: "Resolved" as const } : t
+      // Update conversation status locally
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === selectedConversationId ? { ...c, status: "Resolved" as const } : c
         )
       );
 
       // Add system message about closure
       const systemMessage: Message = {
         id: `sys-${Date.now()}`,
-        ticket_id: selectedTicketId,
+        conversation_id: selectedConversationId,
         sender: "system",
-        content: `Ticket closed by agent. Resolution: ${payload.resolution_type}. Notes: ${payload.notes || "None"}`,
+        content: `Conversation closed by agent. Resolution: ${payload.resolution_type}. Notes: ${payload.notes || "None"}`,
         timestamp: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
@@ -160,32 +160,32 @@ export default function Home() {
 
       setMessages((prev) => ({
         ...prev,
-        [selectedTicketId]: [...(prev[selectedTicketId] || []), systemMessage],
+        [selectedConversationId]: [...(prev[selectedConversationId] || []), systemMessage],
       }));
 
-      // Log knowledge article if generated
-      if (response.knowledge_article) {
-        console.log("Knowledge article generated:", response.knowledge_article);
-        // You could show a toast or modal here to display the article
+      // Log ticket if generated
+      if (response.ticket) {
+        console.log("Ticket generated:", response.ticket);
+        // You could show a toast or modal here to display the ticket
       }
     } catch (error) {
-      console.error("Failed to close ticket:", error);
+      console.error("Failed to close conversation:", error);
     }
   };
 
   return (
     <main className="flex h-full w-full bg-background text-foreground overflow-hidden font-sans antialiased selection:bg-primary/30">
-      <TicketQueue
-        tickets={tickets}
-        selectedTicketId={selectedTicketId}
-        onSelectTicket={handleSelectTicket}
+      <ConversationQueue
+        conversations={conversations}
+        selectedConversationId={selectedConversationId}
+        onSelectConversation={handleSelectConversation}
       />
 
-      <TicketDetail
-        ticket={selectedTicket}
+      <ConversationDetail
+        conversation={selectedConversation}
         messages={currentMessages}
         onSendMessage={handleSendMessage}
-        onCloseTicket={() => selectedTicketId && setIsCloseModalOpen(true)}
+        onCloseConversation={() => selectedConversationId && setIsCloseModalOpen(true)}
         inputMessage={inputMessage}
         onInputChange={setInputMessage}
       />
@@ -197,12 +197,12 @@ export default function Home() {
         onApplySuggestion={handleApplySuggestion}
       />
 
-      {selectedTicketId && (
-        <CloseTicketModal
+      {selectedConversationId && (
+        <CloseConversationModal
           isOpen={isCloseModalOpen}
           onClose={() => setIsCloseModalOpen(false)}
-          onConfirm={handleCloseTicket}
-          ticketId={selectedTicketId}
+          onConfirm={handleCloseConversation}
+          conversationId={selectedConversationId}
         />
       )}
     </main>

@@ -1,24 +1,24 @@
 export type Priority = 'High' | 'Medium' | 'Low';
-export type TicketStatus = 'Open' | 'Pending' | 'Resolved' | 'Closed';
+export type ConversationStatus = 'Open' | 'Pending' | 'Resolved' | 'Closed';
 
-export interface Ticket {
+export interface Conversation {
   id: string;
-  customer_name: string;  // Changed to snake_case to match backend
+  customer_name: string;  // snake_case to match backend
   subject: string;
   priority: Priority;
-  status: TicketStatus;
+  status: ConversationStatus;
   time_ago: string;
   avatar_url?: string;
   last_message?: string;
 }
 
 // Frontend-friendly version with camelCase (for display)
-export interface TicketDisplay {
+export interface ConversationDisplay {
   id: string;
   customerName: string;
   subject: string;
   priority: Priority;
-  status: TicketStatus;
+  status: ConversationStatus;
   timeAgo: string;
   avatarUrl?: string;
   lastMessage?: string;
@@ -28,7 +28,7 @@ export type Sender = 'agent' | 'customer' | 'system';
 
 export interface Message {
   id: string;
-  ticket_id: string;  // Changed to snake_case to match backend
+  conversation_id: string;  // snake_case to match backend
   sender: Sender;
   content: string;
   timestamp: string; // ISO string or formatted time
@@ -46,14 +46,14 @@ export interface SuggestedAction {
   source: string;
 }
 
-export interface CloseTicketPayload {
-  ticket_id: string;
+export interface CloseConversationPayload {
+  conversation_id: string;
   resolution_type: 'Resolved Successfully' | 'Not Applicable';
   notes?: string;
-  add_to_knowledge_base: boolean;
+  create_ticket: boolean;
 }
 
-export interface KnowledgeArticle {
+export interface Ticket {
   subject: string;
   description: string;
   resolution: string;
@@ -66,22 +66,22 @@ export interface KnowledgeArticle {
   internal_notes?: string;
 }
 
-export interface CloseTicketResponse {
+export interface CloseConversationResponse {
   status: string;
   message: string;
-  knowledge_article?: KnowledgeArticle;
+  ticket?: Ticket;
 }
 
-// Utility function to convert backend ticket to display format
-export function toTicketDisplay(ticket: Ticket): TicketDisplay {
+// Utility function to convert backend conversation to display format
+export function toConversationDisplay(conversation: Conversation): ConversationDisplay {
   return {
-    id: ticket.id,
-    customerName: ticket.customer_name,
-    subject: ticket.subject,
-    priority: ticket.priority,
-    status: ticket.status,
-    timeAgo: ticket.time_ago,
-    avatarUrl: ticket.avatar_url,
-    lastMessage: ticket.last_message,
+    id: conversation.id,
+    customerName: conversation.customer_name,
+    subject: conversation.subject,
+    priority: conversation.priority,
+    status: conversation.status,
+    timeAgo: conversation.time_ago,
+    avatarUrl: conversation.avatar_url,
+    lastMessage: conversation.last_message,
   };
 }

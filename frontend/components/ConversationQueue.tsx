@@ -1,15 +1,15 @@
 "use client";
 
-import { TicketDisplay, Priority } from '../app/types';
+import { ConversationDisplay, Priority } from '../app/types';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 
-interface TicketQueueProps {
-    tickets: TicketDisplay[];
-    selectedTicketId: string | null;
-    onSelectTicket: (id: string) => void;
+interface ConversationQueueProps {
+    conversations: ConversationDisplay[];
+    selectedConversationId: string | null;
+    onSelectConversation: (id: string) => void;
 }
 
 const PriorityBadge = ({ priority }: { priority: Priority }) => {
@@ -26,13 +26,13 @@ const PriorityBadge = ({ priority }: { priority: Priority }) => {
     );
 };
 
-export default function TicketQueue({ tickets, selectedTicketId, onSelectTicket }: TicketQueueProps) {
+export default function ConversationQueue({ conversations, selectedConversationId, onSelectConversation }: ConversationQueueProps) {
     const [searchQuery, setSearchQuery] = useState('');
 
-    const filteredTickets = tickets.filter(ticket =>
-        ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ticket.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ticket.id.toLowerCase().includes(searchQuery.toLowerCase())
+    const filteredConversations = conversations.filter(conversation =>
+        conversation.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        conversation.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        conversation.id.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
@@ -41,13 +41,13 @@ export default function TicketQueue({ tickets, selectedTicketId, onSelectTicket 
                 <div className="flex items-center justify-between">
                     <h2 className="text-base font-semibold text-foreground tracking-tight">Inbox</h2>
                     <div className="text-sm text-muted-foreground font-medium bg-secondary px-2 py-0.5 rounded-md">
-                        {filteredTickets.length}
+                        {filteredConversations.length}
                     </div>
                 </div>
                 <div className="relative">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search tickets..."
+                        placeholder="Search conversations..."
                         className="pl-8 bg-background border-border"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -55,29 +55,29 @@ export default function TicketQueue({ tickets, selectedTicketId, onSelectTicket 
                 </div>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                {filteredTickets.map((ticket) => (
+                {filteredConversations.map((conversation) => (
                     <button
-                        key={ticket.id}
-                        onClick={() => onSelectTicket(ticket.id)}
+                        key={conversation.id}
+                        onClick={() => onSelectConversation(conversation.id)}
                         className={cn(
                             "w-full text-left p-3 rounded-lg border border-transparent transition-all duration-200 group relative",
-                            selectedTicketId === ticket.id
+                            selectedConversationId === conversation.id
                                 ? "bg-background shadow-sm border-border"
                                 : "hover:bg-sidebar-accent hover:border-border/50 text-muted-foreground hover:text-foreground"
                         )}
                     >
                         <div className="flex justify-between items-start mb-2">
-                            <PriorityBadge priority={ticket.priority} />
-                            <span className="text-xs font-medium opacity-60 tabular-nums">{ticket.timeAgo}</span>
+                            <PriorityBadge priority={conversation.priority} />
+                            <span className="text-xs font-medium opacity-60 tabular-nums">{conversation.timeAgo}</span>
                         </div>
                         <div className={cn(
                             "font-medium text-base truncate mb-0.5",
-                            selectedTicketId === ticket.id ? "text-foreground" : "text-foreground/80 group-hover:text-foreground"
+                            selectedConversationId === conversation.id ? "text-foreground" : "text-foreground/80 group-hover:text-foreground"
                         )}>
-                            {ticket.customerName}
+                            {conversation.customerName}
                         </div>
                         <div className="text-sm truncate opacity-70">
-                            {ticket.subject}
+                            {conversation.subject}
                         </div>
                     </button>
                 ))}

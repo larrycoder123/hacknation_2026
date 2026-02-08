@@ -4,12 +4,12 @@
  * See app/api/client.ts for the API client implementation.
  */
 
-import { TicketDisplay, Message, SuggestedAction } from './types';
+import { ConversationDisplay, Message, SuggestedAction } from './types';
 
 // Legacy mock data - not used in production
 // The backend now serves this data via the API endpoints
 
-export const MOCK_TICKETS: TicketDisplay[] = [
+export const MOCK_CONVERSATIONS: ConversationDisplay[] = [
     {
         id: '1024',
         customerName: 'Alice Johnson',
@@ -34,7 +34,7 @@ export const MOCK_MESSAGES: Record<string, Message[]> = {
     '1024': [
         {
             id: 'm1',
-            ticket_id: '1024',
+            conversation_id: '1024',
             sender: 'customer',
             content: 'Hi, I am trying to access the property certifications.',
             timestamp: '10:30 AM',

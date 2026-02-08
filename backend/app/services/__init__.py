@@ -3,4 +3,5 @@
 from . import knowledge_service, learning_service
 from .knowledge_service import generate_knowledge_article
 
-__all__ = ["knowledge_service", "learning_service", "generate_knowledge_article"]
+__all__ = ["knowledge_service", "learning_service",
+           "generate_knowledge_article"]

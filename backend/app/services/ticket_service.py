@@ -1,8 +1,8 @@
-"""Knowledge Article Service using LangChain."""
+"""Ticket generation service using LangChain."""
 
 from typing import List, Optional
 from ..core.llm import generate_structured_output
-from ..schemas.knowledge import KnowledgeArticle
+from ..schemas.tickets import Ticket
 from ..schemas.messages import Message
 
 
@@ -10,8 +10,8 @@ def _format_conversation(
     messages: List[Message],
     resolution_notes: Optional[str] = None,
 ) -> str:
-    """Format ticket conversation into a readable string for the LLM."""
-    lines = ["TICKET CONVERSATION:", "=" * 40]
+    """Format conversation messages into a readable string for the LLM."""
+    lines = ["CONVERSATION:", "=" * 40]
 
     for msg in messages:
         sender_label = {
@@ -29,9 +29,9 @@ def _format_conversation(
     return "\n".join(lines)
 
 
-SYSTEM_PROMPT = """You are a technical writer creating knowledge base articles from resolved support tickets.
+SYSTEM_PROMPT = """You are a technical writer creating ticket records from resolved support conversations.
 
-Your task is to analyze the support ticket conversation and create a comprehensive, well-structured knowledge article that can help:
+Your task is to analyze the support conversation and create a comprehensive, well-structured ticket (case record) that can help:
 1. Future support agents handle similar issues quickly
 2. Customers potentially self-serve if the article is made public
 3. Developers understand recurring issues
@@ -45,40 +45,40 @@ Guidelines:
 - Keep the language professional but accessible"""
 
 
-async def generate_knowledge_article(
-    ticket_id: str,
-    ticket_subject: str,
+async def generate_ticket(
+    conversation_id: str,
+    conversation_subject: str,
     messages: List[Message],
     resolution_notes: Optional[str] = None,
     custom_tags: Optional[List[str]] = None,
-) -> KnowledgeArticle:
+) -> Ticket:
     """
-    Generate a knowledge article from a resolved ticket conversation.
+    Generate a ticket (case record) from a resolved conversation.
     """
     conversation_text = _format_conversation(messages, resolution_notes)
 
-    user_prompt = f"""Please analyze this resolved support ticket and create a knowledge article.
+    user_prompt = f"""Please analyze this resolved support conversation and create a ticket record.
 
-TICKET ID: {ticket_id}
-ORIGINAL SUBJECT: {ticket_subject}
+CONVERSATION ID: {conversation_id}
+ORIGINAL SUBJECT: {conversation_subject}
 
 {conversation_text}
 
-Create a knowledge article with:
+Create a ticket record with:
 - A clear, searchable subject line
 - A description of the issue/problem
 - The resolution that was applied
 - Relevant tags for categorization
 - Any other relevant fields you can extract from the conversation"""
 
-    article = await generate_structured_output(
+    ticket = await generate_structured_output(
         prompt=user_prompt,
-        output_schema=KnowledgeArticle,
+        output_schema=Ticket,
         system_prompt=SYSTEM_PROMPT,
     )
 
     # Merge custom tags if provided
     if custom_tags:
-        article.tags = list(set(article.tags + custom_tags))
+        ticket.tags = list(set(ticket.tags + custom_tags))
 
-    return article
+    return ticket

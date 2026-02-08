@@ -1,6 +1,6 @@
 "use client";
 
-import { TicketDisplay, Message } from '../app/types';
+import { ConversationDisplay, Message } from '../app/types';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,16 +9,16 @@ import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Send, X, MoreHorizontal, Paperclip } from 'lucide-react';
 
-interface TicketDetailProps {
-    ticket: TicketDisplay | null;
+interface ConversationDetailProps {
+    conversation: ConversationDisplay | null;
     messages: Message[];
     onSendMessage: (content: string) => void;
-    onCloseTicket: () => void;
+    onCloseConversation: () => void;
     inputMessage?: string;
     onInputChange?: (value: string) => void;
 }
 
-export default function TicketDetail({ ticket, messages, onSendMessage, onCloseTicket, inputMessage, onInputChange }: TicketDetailProps) {
+export default function ConversationDetail({ conversation, messages, onSendMessage, onCloseConversation, inputMessage, onInputChange }: ConversationDetailProps) {
     const [internalInput, setInternalInput] = useState('');
     const inputValue = inputMessage !== undefined ? inputMessage : internalInput;
     const setInputValue = onInputChange || setInternalInput;
@@ -39,13 +39,13 @@ export default function TicketDetail({ ticket, messages, onSendMessage, onCloseT
         }
     };
 
-    if (!ticket) {
+    if (!conversation) {
         return (
             <div className="flex-1 flex flex-col items-center justify-center bg-background text-muted-foreground gap-2">
                 <div className="h-12 w-12 rounded-lg bg-muted/50 flex items-center justify-center">
                     <MoreHorizontal className="h-6 w-6 opacity-50" />
                 </div>
-                <p className="text-sm font-medium">Select a ticket to view details</p>
+                <p className="text-sm font-medium">Select a conversation to view details</p>
             </div>
         );
     }
@@ -57,20 +57,20 @@ export default function TicketDetail({ ticket, messages, onSendMessage, onCloseT
                 <div className="flex items-center gap-4">
                     <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
-                            <span className="text-sm font-mono text-muted-foreground">#{ticket.id}</span>
+                            <span className="text-sm font-mono text-muted-foreground">#{conversation.id}</span>
                             <h2 className="text-base font-semibold text-foreground tracking-tight line-clamp-1">
-                                {ticket.subject}
+                                {conversation.subject}
                             </h2>
                             <Badge variant="outline" className={cn(
                                 "ml-2 text-xs uppercase tracking-wider h-5 px-1.5",
-                                ticket.status === 'Open' ? "bg-emerald-500/10 text-emerald-600 border-emerald-200/20" : "bg-zinc-100 text-zinc-600"
+                                conversation.status === 'Open' ? "bg-emerald-500/10 text-emerald-600 border-emerald-200/20" : "bg-zinc-100 text-zinc-600"
                             )}>
-                                {ticket.status}
+                                {conversation.status}
                             </Badge>
                         </div>
                         <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                             <span>via</span>
-                            <span className="font-medium text-foreground">{ticket.customerName}</span>
+                            <span className="font-medium text-foreground">{conversation.customerName}</span>
                         </div>
                     </div>
                 </div>
@@ -79,11 +79,11 @@ export default function TicketDetail({ ticket, messages, onSendMessage, onCloseT
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={onCloseTicket}
+                        onClick={onCloseConversation}
                         className="h-8 text-sm gap-1.5 hidden sm:flex"
                     >
                         <X className="h-3.5 w-3.5" />
-                        Close Ticket
+                        Close Conversation
                     </Button>
                 </div>
             </div>
@@ -107,7 +107,7 @@ export default function TicketDetail({ ticket, messages, onSendMessage, onCloseT
                             )}>
                                 <div className="flex items-center gap-2">
                                     <span className="text-xs font-medium text-foreground">
-                                        {isAgent ? 'Support Agent' : ticket.customerName}
+                                        {isAgent ? 'Support Agent' : conversation.customerName}
                                     </span>
                                     <span className="text-xs text-muted-foreground">{message.timestamp}</span>
                                 </div>

@@ -1,6 +1,6 @@
-"""Data module - mock data for tickets, suggestions, and conversations."""
+"""Data module - mock data for conversations, suggestions, and messages."""
 
-from .tickets import MOCK_TICKETS, MOCK_CONVERSATIONS
+from .conversations import MOCK_CONVERSATIONS, MOCK_MESSAGES
 from .suggestions import MOCK_SUGGESTIONS
 
-__all__ = ["MOCK_TICKETS", "MOCK_CONVERSATIONS", "MOCK_SUGGESTIONS"]
+__all__ = ["MOCK_CONVERSATIONS", "MOCK_MESSAGES", "MOCK_SUGGESTIONS"]

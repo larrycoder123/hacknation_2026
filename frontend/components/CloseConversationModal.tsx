@@ -1,31 +1,31 @@
 "use client";
 
 import { useState } from 'react';
-import { CloseTicketPayload } from '../app/types';
+import { CloseConversationPayload } from '../app/types';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface CloseTicketModalProps {
+interface CloseConversationModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: (payload: CloseTicketPayload) => void;
-    ticketId: string;
+    onConfirm: (payload: CloseConversationPayload) => void;
+    conversationId: string;
 }
 
-export default function CloseTicketModal({ isOpen, onClose, onConfirm, ticketId }: CloseTicketModalProps) {
-    const [resolutionType, setResolutionType] = useState<CloseTicketPayload['resolution_type']>('Resolved Successfully');
+export default function CloseConversationModal({ isOpen, onClose, onConfirm, conversationId }: CloseConversationModalProps) {
+    const [resolutionType, setResolutionType] = useState<CloseConversationPayload['resolution_type']>('Resolved Successfully');
     const [notes, setNotes] = useState('');
 
     if (!isOpen) return null;
 
     const handleSubmit = () => {
         onConfirm({
-            ticket_id: ticketId,
+            conversation_id: conversationId,
             resolution_type: resolutionType,
             notes,
-            add_to_knowledge_base: true,
+            create_ticket: true,
         });
         onClose();
     };
@@ -35,8 +35,8 @@ export default function CloseTicketModal({ isOpen, onClose, onConfirm, ticketId 
             <div className="w-full max-w-md bg-card rounded-xl shadow-lg border border-border animate-in fade-in zoom-in-95 duration-200">
                 <div className="p-6 space-y-6">
                     <div>
-                        <h3 className="text-lg font-semibold text-foreground tracking-tight">Close Ticket</h3>
-                        <p className="text-sm text-muted-foreground mt-1">Select a resolution status for ticket #{ticketId}</p>
+                        <h3 className="text-lg font-semibold text-foreground tracking-tight">Close Conversation</h3>
+                        <p className="text-sm text-muted-foreground mt-1">Select a resolution status for conversation #{conversationId}</p>
                     </div>
 
                     <div className="space-y-4">
@@ -110,7 +110,7 @@ export default function CloseTicketModal({ isOpen, onClose, onConfirm, ticketId 
                         <div className="flex items-start gap-3 p-3 bg-primary/5 border border-primary/10 rounded-lg">
                             <AlertCircle className="h-4 w-4 text-primary mt-0.5" />
                             <p className="text-sm text-primary/80 leading-relaxed">
-                                Successful resolutions will be added to the knowledge base to improve future AI suggestions.
+                                Successful resolutions will generate a ticket record to improve future AI suggestions.
                             </p>
                         </div>
                     </div>
@@ -127,7 +127,7 @@ export default function CloseTicketModal({ isOpen, onClose, onConfirm, ticketId 
                         onClick={handleSubmit}
                         className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-[100px]"
                     >
-                        Close Ticket
+                        Close Conversation
                     </Button>
                 </div>
             </div>

@@ -2,83 +2,83 @@ from fastapi import APIRouter, HTTPException
 from typing import List, Optional
 
 from ..schemas.actions import SuggestedAction
-from ..schemas.tickets import CloseTicketPayload, CloseTicketResponse, Ticket
+from ..schemas.conversations import CloseConversationPayload, CloseConversationResponse, Conversation
 from ..schemas.messages import Message
-from ..schemas.knowledge import KnowledgeArticle
-from ..data.tickets import MOCK_TICKETS, MOCK_CONVERSATIONS
+from ..schemas.tickets import Ticket
+from ..data.conversations import MOCK_CONVERSATIONS, MOCK_MESSAGES
 from ..data.suggestions import MOCK_SUGGESTIONS
-from ..services import knowledge_service
+from ..services import ticket_service
 
 router = APIRouter()
 
 
-@router.get("/tickets", response_model=List[Ticket])
-async def get_tickets():
-    """Retrieve all support tickets."""
-    return list(MOCK_TICKETS.values())
+@router.get("/conversations", response_model=List[Conversation])
+async def get_conversations():
+    """Retrieve all support conversations."""
+    return list(MOCK_CONVERSATIONS.values())
 
 
-@router.get("/tickets/{ticket_id}", response_model=Ticket)
-async def get_ticket(ticket_id: str):
-    """Retrieve a single ticket by ID."""
-    if ticket_id not in MOCK_TICKETS:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    return MOCK_TICKETS[ticket_id]
+@router.get("/conversations/{conversation_id}", response_model=Conversation)
+async def get_conversation(conversation_id: str):
+    """Retrieve a single conversation by ID."""
+    if conversation_id not in MOCK_CONVERSATIONS:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return MOCK_CONVERSATIONS[conversation_id]
 
 
-@router.get("/tickets/{ticket_id}/messages", response_model=List[Message])
-async def get_ticket_messages(ticket_id: str):
-    """Retrieve the conversation history for a ticket."""
-    if ticket_id not in MOCK_TICKETS:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    return MOCK_CONVERSATIONS.get(ticket_id, [])
+@router.get("/conversations/{conversation_id}/messages", response_model=List[Message])
+async def get_conversation_messages(conversation_id: str):
+    """Retrieve the message history for a conversation."""
+    if conversation_id not in MOCK_CONVERSATIONS:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return MOCK_MESSAGES.get(conversation_id, [])
 
 
-@router.get("/tickets/{ticket_id}/suggested-actions", response_model=List[SuggestedAction])
-async def get_suggested_actions(ticket_id: str):
-    """Retrieve AI-generated suggested actions for resolving a ticket."""
+@router.get("/conversations/{conversation_id}/suggested-actions", response_model=List[SuggestedAction])
+async def get_suggested_actions(conversation_id: str):
+    """Retrieve AI-generated suggested actions for resolving a conversation."""
     return MOCK_SUGGESTIONS
 
 
-@router.post("/tickets/{ticket_id}/close", response_model=CloseTicketResponse)
-async def close_ticket(ticket_id: str, payload: CloseTicketPayload):
+@router.post("/conversations/{conversation_id}/close", response_model=CloseConversationResponse)
+async def close_conversation(conversation_id: str, payload: CloseConversationPayload):
     """
-    Close a ticket and optionally generate a knowledge base article.
-    
-    If add_to_knowledge_base is true and the ticket was resolved successfully,
-    an LLM generates a knowledge article from the conversation.
+    Close a conversation and optionally generate a ticket (case record).
+
+    If create_ticket is true and the conversation was resolved successfully,
+    an LLM generates a ticket from the conversation.
     """
-    if ticket_id not in MOCK_TICKETS:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+    if conversation_id not in MOCK_CONVERSATIONS:
+        raise HTTPException(status_code=404, detail="Conversation not found")
 
-    ticket = MOCK_TICKETS[ticket_id]
-    messages = MOCK_CONVERSATIONS.get(ticket_id, [])
+    conversation = MOCK_CONVERSATIONS[conversation_id]
+    messages = MOCK_MESSAGES.get(conversation_id, [])
 
-    knowledge_article: Optional[KnowledgeArticle] = None
+    ticket: Optional[Ticket] = None
 
-    # Generate knowledge article if requested
-    if payload.add_to_knowledge_base and payload.resolution_type == "Resolved Successfully":
+    # Generate ticket if requested
+    if payload.create_ticket and payload.resolution_type == "Resolved Successfully":
         try:
-            knowledge_article = await knowledge_service.generate_knowledge_article(
-                ticket_id=ticket_id,
-                ticket_subject=ticket.subject,
+            ticket = await ticket_service.generate_ticket(
+                conversation_id=conversation_id,
+                conversation_subject=conversation.subject,
                 messages=messages,
                 resolution_notes=payload.notes,
             )
 
-            # TODO: Save knowledge_article to database
-            print(f"Generated knowledge article for ticket {ticket_id}:")
-            print(knowledge_article.model_dump_json(indent=2))
+            # TODO: Save ticket to database
+            print(f"Generated ticket for conversation {conversation_id}:")
+            print(ticket.model_dump_json(indent=2))
 
         except Exception as e:
-            # Log error but don't fail the ticket closure
-            print(f"Failed to generate knowledge article: {e}")
+            # Log error but don't fail the conversation closure
+            print(f"Failed to generate ticket: {e}")
 
-    # Update ticket status in mock data
-    MOCK_TICKETS[ticket_id] = ticket.model_copy(update={"status": "Resolved"})
+    # Update conversation status in mock data
+    MOCK_CONVERSATIONS[conversation_id] = conversation.model_copy(update={"status": "Resolved"})
 
-    return CloseTicketResponse(
+    return CloseConversationResponse(
         status="success",
-        message=f"Ticket {ticket_id} closed successfully",
-        knowledge_article=knowledge_article,
+        message=f"Conversation {conversation_id} closed successfully",
+        ticket=ticket,
     )
