@@ -159,7 +159,10 @@ class TestRerank:
         result = rerank(state)
 
         assert len(result["evidence"]) == 2
-        assert result["evidence"][0].rerank_score == 0.95
+        # rerank_score is blended: raw * (1 - w + w * learning_score)
+        # with confidence=0.5, usage=0, no updated_at → learning_score ≈ 0.375
+        # blended = 0.95 * (1 - 0.3 + 0.3 * 0.375) = 0.7719
+        assert result["evidence"][0].rerank_score == 0.7719
         assert result["evidence"][0].source_id == "SCRIPT-0002"
 
     def test_empty_candidates(self):
