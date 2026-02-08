@@ -1,11 +1,13 @@
-import { Ticket, Priority } from '../app/types';
+"use client";
+
+import { TicketDisplay, Priority } from '../app/types';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 
 interface TicketQueueProps {
-    tickets: Ticket[];
+    tickets: TicketDisplay[];
     selectedTicketId: string | null;
     onSelectTicket: (id: string) => void;
 }
