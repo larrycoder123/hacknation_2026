@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { Send, X, MoreHorizontal, Paperclip } from 'lucide-react';
+import MarkdownRenderer from './MarkdownRenderer';
 
 interface ConversationDetailProps {
     conversation: ConversationDisplay | null;
@@ -131,7 +132,7 @@ export default function ConversationDetail({ conversation, messages, onSendMessa
                                             : "bg-zinc-900 text-foreground border border-border"
                                     )}
                                 >
-                                    <div className="whitespace-pre-wrap break-words">{message.content}</div>
+                                    <MarkdownRenderer content={message.content} />
                                 </div>
                             </div>
                         </div>

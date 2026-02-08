@@ -9,6 +9,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { BookOpen } from "lucide-react";
+import ExpandableText from "./ExpandableText";
+import MarkdownRenderer from "./MarkdownRenderer";
 
 interface LearningEventDetailProps {
   event: LearningEventDetailType | null;
@@ -66,8 +68,12 @@ export default function LearningEventDetail({
         {/* Detected Gap */}
         <div>
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Detected Gap</h3>
-          <div className="bg-muted/30 border border-border/50 rounded-md p-3 text-sm whitespace-pre-wrap">
-            {event.detected_gap}
+          <div className="bg-muted/30 border border-border/50 rounded-md p-3">
+            <ExpandableText
+              content={event.detected_gap}
+              maxLength={300}
+              isMarkdown={true}
+            />
           </div>
         </div>
 
@@ -78,11 +84,22 @@ export default function LearningEventDetail({
             <div className="bg-muted/30 border border-border/50 rounded-md p-3 text-sm space-y-2">
               <p><span className="text-muted-foreground">Ticket:</span> <span className="font-mono text-xs">{event.trigger_ticket_number}</span></p>
               {event.trigger_ticket_subject && <p><span className="text-muted-foreground">Subject:</span> {event.trigger_ticket_subject}</p>}
-              {event.trigger_ticket_description && <p className="whitespace-pre-wrap text-foreground/80">{event.trigger_ticket_description}</p>}
+              {event.trigger_ticket_description && (
+                <ExpandableText
+                  content={event.trigger_ticket_description}
+                  maxLength={250}
+                  isMarkdown={true}
+                />
+              )}
               {event.trigger_ticket_resolution && (
                 <div>
                   <span className="text-muted-foreground">Resolution:</span>
-                  <p className="whitespace-pre-wrap text-foreground/80 mt-1">{event.trigger_ticket_resolution}</p>
+                  <ExpandableText
+                    content={event.trigger_ticket_resolution}
+                    maxLength={250}
+                    isMarkdown={true}
+                    className="mt-1"
+                  />
                 </div>
               )}
             </div>
@@ -93,9 +110,13 @@ export default function LearningEventDetail({
         {event.proposed_article && (
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Proposed KB Article</h3>
-            <div className="bg-muted/30 border border-border/50 rounded-md p-3 text-sm space-y-2">
-              <h4 className="font-semibold">{event.proposed_article.title}</h4>
-              <p className="whitespace-pre-wrap text-foreground/80 leading-relaxed">{event.proposed_article.body}</p>
+            <div className="bg-muted/30 border border-border/50 rounded-md p-3 space-y-2">
+              <h4 className="font-semibold text-sm">{event.proposed_article.title}</h4>
+              <ExpandableText
+                content={event.proposed_article.body}
+                maxLength={400}
+                isMarkdown={true}
+              />
               {event.proposed_article.tags && <p className="text-xs text-muted-foreground">Tags: {event.proposed_article.tags}</p>}
             </div>
           </div>
@@ -105,9 +126,13 @@ export default function LearningEventDetail({
         {event.event_type === "CONTRADICTION" && event.flagged_article && (
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Flagged Article (Existing)</h3>
-            <div className="bg-muted/30 border border-border/50 rounded-md p-3 text-sm space-y-2">
-              <h4 className="font-semibold">{event.flagged_article.title}</h4>
-              <p className="whitespace-pre-wrap text-foreground/80 leading-relaxed">{event.flagged_article.body}</p>
+            <div className="bg-muted/30 border border-border/50 rounded-md p-3 space-y-2">
+              <h4 className="font-semibold text-sm">{event.flagged_article.title}</h4>
+              <ExpandableText
+                content={event.flagged_article.body}
+                maxLength={400}
+                isMarkdown={true}
+              />
             </div>
           </div>
         )}
