@@ -1,0 +1,71 @@
+@startuml SupportMind Architecture
+skinparam backgroundColor #1e1e2e
+skinparam defaultFontColor #cdd6f4
+skinparam defaultFontName Geist
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundCorner 12
+skinparam padding 6
+
+skinparam component {
+  BackgroundColor #313244
+  BorderColor #585b70
+  FontColor #cdd6f4
+}
+skinparam database {
+  BackgroundColor #313244
+  BorderColor #585b70
+  FontColor #cdd6f4
+}
+skinparam cloud {
+  BackgroundColor #313244
+  BorderColor #585b70
+  FontColor #cdd6f4
+}
+skinparam arrow {
+  Color #89b4fa
+  FontColor #a6adc8
+}
+skinparam note {
+  BackgroundColor #45475a
+  BorderColor #585b70
+  FontColor #cdd6f4
+}
+
+title SupportMind — System Architecture
+
+component "**Frontend**\nNext.js 16 / React 19\nTailwindCSS 4 / Shadcn" as frontend
+
+component "**Backend**\nFastAPI / Python 3.12" as backend {
+  component "Conversation &\nLearning Routes" as api
+  component "Ticket Service\n(LangChain)" as ticket_svc
+  component "Learning Service" as learn_svc
+  component "RAG Pipeline\n(LangGraph)" as rag
+}
+
+database "**Supabase**\nPostgreSQL 17 + pgvector" as supabase {
+  component "retrieval_corpus\n(vector index)" as corpus
+  component "tickets / KB /\nlearning_events" as tables
+}
+
+cloud "**OpenAI**\nGPT-4o-mini\ntext-embedding-3-large" as openai
+cloud "**Cohere**\nrerank-v4.0-pro" as cohere
+
+frontend -right-> api : HTTP / JSON
+api -down-> ticket_svc
+api -down-> learn_svc
+learn_svc -right-> rag
+ticket_svc -down-> tables
+learn_svc -down-> tables
+rag -down-> corpus : vector search
+rag -right-> openai : embeddings +\nstructured output
+rag -right-> cohere : reranking
+ticket_svc -right-> openai : ticket generation
+
+note bottom of corpus
+  Scripts + KB articles +
+  ticket resolutions in
+  one 3072d vector space
+end note
+
+@enduml
