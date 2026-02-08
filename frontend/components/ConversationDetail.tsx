@@ -41,8 +41,8 @@ export default function ConversationDetail({ conversation, messages, onSendMessa
 
     if (!conversation) {
         return (
-            <div className="flex-1 flex flex-col items-center justify-center bg-background/50 text-muted-foreground gap-2 border border-border rounded-xl shadow-sm m-0">
-                <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center">
+            <div className="flex-1 flex flex-col items-center justify-center bg-background/50 text-muted-foreground gap-2 border border-border rounded-lg shadow-sm m-0">
+                <div className="h-12 w-12 rounded-md bg-muted/50 flex items-center justify-center">
                     <MoreHorizontal className="h-6 w-6 opacity-30" />
                 </div>
                 <p className="text-sm font-medium tracking-tight">Select a conversation</p>
@@ -51,7 +51,7 @@ export default function ConversationDetail({ conversation, messages, onSendMessa
     }
 
     return (
-        <div className="flex-1 flex flex-col h-full bg-background relative border border-border rounded-xl shadow-sm overflow-hidden">
+        <div className="flex-1 flex flex-col h-full bg-background relative border border-border rounded-lg shadow-sm overflow-hidden">
             {/* Header */}
             <div className="h-14 border-b border-border flex items-center justify-between px-4 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
                 <div className="flex items-center gap-4">
@@ -122,7 +122,7 @@ export default function ConversationDetail({ conversation, messages, onSendMessa
                                         "rounded-lg px-4 py-2 text-sm leading-relaxed shadow-sm w-full",
                                         isAgent
                                             ? "bg-secondary text-foreground border border-transparent"
-                                            : "bg-background text-foreground border border-border"
+                                            : "bg-zinc-900 text-foreground border border-border"
                                     )}
                                 >
                                     <div className="whitespace-pre-wrap break-words">{message.content}</div>
@@ -136,7 +136,7 @@ export default function ConversationDetail({ conversation, messages, onSendMessa
 
             {/* Input Area */}
             <div className="p-4 border-t border-border bg-background/50">
-                <div className="relative flex flex-col gap-2 rounded-lg border border-border bg-white dark:bg-zinc-900 p-2 focus-within:ring-1 focus-within:ring-ring ring-offset-0 focus-within:border-ring transition-all shadow-sm">
+                <div className="relative rounded-lg border border-border bg-zinc-900/50 focus-within:ring-1 focus-within:ring-ring ring-offset-0 focus-within:border-ring transition-all shadow-sm">
                     <Textarea
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
@@ -147,9 +147,12 @@ export default function ConversationDetail({ conversation, messages, onSendMessa
                             }
                         }}
                         placeholder="Type your reply..."
-                        className="min-h-[60px] w-full border-none bg-transparent shadow-none focus-visible:ring-0 p-2 resize-none text-sm placeholder:text-muted-foreground/50"
+                        className="min-h-[80px] w-full border-none bg-transparent shadow-none focus-visible:ring-0 p-3 pb-10 resize-none text-sm placeholder:text-muted-foreground/50 leading-relaxed"
                     />
-                    <div className="flex items-center justify-end px-1 pb-1">
+                    <div className="absolute bottom-2 right-2 flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground/40 font-medium select-none mr-2 hidden sm:inline-block">
+                            Press Enter to send
+                        </span>
                         <Button
                             onClick={handleSend}
                             disabled={!inputValue.trim()}

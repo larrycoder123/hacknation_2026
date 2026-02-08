@@ -16,9 +16,9 @@ interface AIAssistantProps {
 const ConfidenceScore = ({ score }: { score: number }) => {
     let colorClass = 'text-muted-foreground';
     if (score >= 0.8) {
-        colorClass = 'text-emerald-600 dark:text-emerald-500';
+        colorClass = 'text-emerald-500';
     } else if (score >= 0.6) {
-        colorClass = 'text-amber-600 dark:text-amber-500';
+        colorClass = 'text-amber-500';
     }
 
     return (
@@ -31,7 +31,7 @@ const ConfidenceScore = ({ score }: { score: number }) => {
 const ActionIcon = ({ type }: { type: ActionType }) => {
     switch (type) {
         case 'script':
-            return <Terminal className="w-3.5 h-3.5 text-blue-500" />;
+            return <Terminal className="w-3.5 h-3.5 text-blue-400" />;
         case 'response':
             return <MessageSquare className="w-3.5 h-3.5 text-primary" />;
         default:
@@ -41,7 +41,7 @@ const ActionIcon = ({ type }: { type: ActionType }) => {
 
 export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, onApplySuggestion }: AIAssistantProps) {
     return (
-        <div className="w-[360px] 2xl:w-[420px] h-full flex flex-col bg-background/50 backdrop-blur-xl flex-shrink-0 border border-border rounded-xl shadow-sm overflow-hidden">
+        <div className="w-[360px] 2xl:w-[420px] h-full flex flex-col bg-background/50 backdrop-blur-xl flex-shrink-0 border border-border rounded-lg shadow-sm overflow-hidden">
             <div className="p-4 h-14 border-b border-border/50 flex items-center justify-between bg-background/50">
                 <div className="flex items-center gap-2">
                     <div className="p-1 rounded-md bg-primary/10">
@@ -64,7 +64,7 @@ export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, 
             <div className="flex-1 overflow-y-auto p-4 scrollbar-hide">
                 {suggestions.length === 0 && !isLoading ? (
                     <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-forwards" style={{ animationDelay: '100ms', opacity: 1 }}>
-                        <div className="h-10 w-10 rounded-lg bg-muted/50 flex items-center justify-center">
+                        <div className="h-10 w-10 rounded-md bg-muted/50 flex items-center justify-center">
                             <Sparkles className="w-5 h-5 text-muted-foreground/40" />
                         </div>
                         <div className="space-y-1 max-w-[200px]">
@@ -86,7 +86,7 @@ export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, 
                         {isLoading ? (
                             <div className="space-y-3">
                                 {[1, 2, 3].map((i) => (
-                                    <div key={i} className="h-32 bg-muted/20 rounded-lg animate-pulse border border-border/40"></div>
+                                    <div key={i} className="h-32 bg-muted/20 rounded-md animate-pulse border border-border/40"></div>
                                 ))}
                             </div>
                         ) : (
@@ -97,7 +97,7 @@ export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, 
                                 {suggestions.map((suggestion) => (
                                     <div
                                         key={suggestion.id}
-                                        className="group p-3 border border-border rounded-lg bg-card hover:border-border/80 transition-all shadow-sm space-y-2.5"
+                                        className="group p-3 border border-border rounded-md bg-card hover:border-border/80 transition-all shadow-sm space-y-2.5"
                                     >
                                         <div className="flex justify-between items-start">
                                             <div className="flex items-center gap-2">

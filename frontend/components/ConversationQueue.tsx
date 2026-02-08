@@ -14,9 +14,9 @@ interface ConversationQueueProps {
 
 const PriorityBadge = ({ priority }: { priority: Priority }) => {
     const variants: Record<Priority, string> = {
-        High: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-200/20',
-        Medium: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-200/20',
-        Low: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200/20',
+        High: 'bg-red-500/10 text-red-400 border-red-500/20',
+        Medium: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+        Low: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
     };
 
     return (
@@ -36,7 +36,7 @@ export default function ConversationQueue({ conversations, selectedConversationI
     );
 
     return (
-        <div className="w-80 h-full flex flex-col bg-background/50 backdrop-blur-xl flex-shrink-0 border border-border rounded-xl shadow-sm overflow-hidden">
+        <div className="w-80 h-full flex flex-col bg-background/50 backdrop-blur-xl flex-shrink-0 border border-border rounded-lg shadow-sm overflow-hidden">
             <div className="p-4 border-b border-border/50 space-y-4 bg-background/50">
                 <div className="flex items-center justify-between">
                     <h2 className="text-sm font-semibold text-foreground tracking-tight">Inbox</h2>
