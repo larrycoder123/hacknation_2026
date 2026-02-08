@@ -156,6 +156,7 @@ create table questions (
 --   SCRIPT:            script_purpose + script_text_sanitized
 --   KB:                body
 --   TICKET_RESOLUTION: description + root_cause + resolution
+-- Embedding model: text-embedding-3-large (3072 dimensions)
 create table retrieval_corpus (
     source_type     text not null check (source_type in ('SCRIPT', 'KB', 'TICKET_RESOLUTION')),
     source_id       text not null,
@@ -164,9 +165,24 @@ create table retrieval_corpus (
     category        text references categories (name),
     module          text,
     tags            text default '',
-    embedding       vector(1536),
+    embedding       vector(3072),
     confidence      float not null default 0.5,   -- feedback score: up on resolve, down on unhelpful
     usage_count     int not null default 0,        -- times used in a resolution
     updated_at      timestamptz default now(),     -- content freshness
     primary key (source_type, source_id)
+);
+
+-- Per-attempt RAG search log. One row per retrieval attempt within a conversation.
+-- Drives self-learning: outcome feeds back into retrieval_corpus.confidence.
+create table retrieval_log (
+    retrieval_id    text primary key,              -- RET-{uuid}
+    ticket_number   text not null references conversations (ticket_number),
+    attempt_number  int not null,                  -- 1, 2, 3… within the ticket
+    query_text      text not null,                 -- what the agent searched for
+    source_type     text,                          -- returned corpus row source_type (null if no match)
+    source_id       text,                          -- returned corpus row source_id   (null if no match)
+    similarity_score float,                        -- cosine similarity of top result
+    outcome         text check (outcome in ('RESOLVED', 'UNHELPFUL', 'PARTIAL') or outcome is null),
+    created_at      timestamptz default now(),
+    unique (ticket_number, attempt_number)
 );
