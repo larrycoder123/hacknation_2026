@@ -1,5 +1,9 @@
-from fastapi import APIRouter, HTTPException
+import logging
+
+from fastapi import APIRouter, HTTPException, Path
 from typing import List, Optional
+
+logger = logging.getLogger(__name__)
 
 from ..schemas.actions import SuggestedAction
 from ..schemas.conversations import CloseConversationPayload, CloseConversationResponse, Conversation
@@ -19,7 +23,7 @@ async def get_conversations():
 
 
 @router.get("/conversations/{conversation_id}", response_model=Conversation)
-async def get_conversation(conversation_id: str):
+async def get_conversation(conversation_id: str = Path(min_length=1, max_length=50)):
     """Retrieve a single conversation by ID."""
     if conversation_id not in MOCK_CONVERSATIONS:
         raise HTTPException(status_code=404, detail="Conversation not found")
@@ -27,7 +31,7 @@ async def get_conversation(conversation_id: str):
 
 
 @router.get("/conversations/{conversation_id}/messages", response_model=List[Message])
-async def get_conversation_messages(conversation_id: str):
+async def get_conversation_messages(conversation_id: str = Path(min_length=1, max_length=50)):
     """Retrieve the message history for a conversation."""
     if conversation_id not in MOCK_CONVERSATIONS:
         raise HTTPException(status_code=404, detail="Conversation not found")
@@ -35,13 +39,13 @@ async def get_conversation_messages(conversation_id: str):
 
 
 @router.get("/conversations/{conversation_id}/suggested-actions", response_model=List[SuggestedAction])
-async def get_suggested_actions(conversation_id: str):
+async def get_suggested_actions(conversation_id: str = Path(min_length=1, max_length=50)):
     """Retrieve AI-generated suggested actions for resolving a conversation."""
     return MOCK_SUGGESTIONS
 
 
 @router.post("/conversations/{conversation_id}/close", response_model=CloseConversationResponse)
-async def close_conversation(conversation_id: str, payload: CloseConversationPayload):
+async def close_conversation(conversation_id: str = Path(min_length=1, max_length=50), payload: CloseConversationPayload = ...):
     """
     Close a conversation and optionally generate a ticket (case record).
 
@@ -67,12 +71,10 @@ async def close_conversation(conversation_id: str, payload: CloseConversationPay
             )
 
             # TODO: Save ticket to database
-            print(f"Generated ticket for conversation {conversation_id}:")
-            print(ticket.model_dump_json(indent=2))
+            logger.info("Generated ticket for conversation %s: %s", conversation_id, ticket.model_dump_json())
 
-        except Exception as e:
-            # Log error but don't fail the conversation closure
-            print(f"Failed to generate ticket: {e}")
+        except Exception:
+            logger.exception("Failed to generate ticket for conversation %s", conversation_id)
 
     # Update conversation status in mock data
     MOCK_CONVERSATIONS[conversation_id] = conversation.model_copy(update={"status": "Resolved"})

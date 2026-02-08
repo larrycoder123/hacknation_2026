@@ -1,5 +1,5 @@
 from typing import Optional, Literal
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from .tickets import Ticket
 
 Priority = Literal["High", "Medium", "Low"]
@@ -18,9 +18,9 @@ class Conversation(BaseModel):
 
 class CloseConversationPayload(BaseModel):
     """Payload for closing a conversation."""
-    conversation_id: str
+    conversation_id: str = Field(min_length=1, max_length=50)
     resolution_type: Literal["Resolved Successfully", "Not Applicable"]
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=5000)
     create_ticket: bool
 
 class CloseConversationResponse(BaseModel):

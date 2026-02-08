@@ -30,6 +30,7 @@ export default function Home() {
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Lifted state for the input box
   const [inputMessage, setInputMessage] = useState("");
@@ -45,6 +46,7 @@ export default function Home() {
         setConversations(backendConversations.map(toConversationDisplay));
       } catch (error) {
         console.error("Failed to fetch conversations:", error);
+        setError("Failed to load conversations. Please refresh the page.");
       } finally {
         setIsConversationsLoading(false);
       }
@@ -69,6 +71,7 @@ export default function Home() {
         }));
       } catch (error) {
         console.error("Failed to fetch messages:", error);
+        setError("Failed to load messages.");
       } finally {
         setIsMessagesLoading(false);
       }
@@ -110,6 +113,7 @@ export default function Home() {
       setSuggestions(actions);
     } catch (error) {
       console.error("Failed to fetch suggestions:", error);
+      setError("Failed to fetch suggestions.");
     } finally {
       setIsSuggestionsLoading(false);
     }
@@ -170,11 +174,18 @@ export default function Home() {
       }
     } catch (error) {
       console.error("Failed to close conversation:", error);
+      setError("Failed to close conversation.");
     }
   };
 
   return (
-    <main className="flex h-full w-full bg-background text-foreground overflow-hidden font-sans antialiased selection:bg-primary/30">
+    <main className="flex h-full w-full bg-background text-foreground overflow-hidden font-sans antialiased selection:bg-primary/30 relative">
+      {error && (
+        <div className="absolute top-0 left-0 right-0 z-50 bg-red-500/90 text-white px-4 py-2 text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="ml-4 font-bold hover:opacity-80">X</button>
+        </div>
+      )}
       <ConversationQueue
         conversations={conversations}
         selectedConversationId={selectedConversationId}
