@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 from pydantic import BaseModel
 
 class SuggestedAction(BaseModel):
@@ -9,3 +9,4 @@ class SuggestedAction(BaseModel):
     description: str
     content: str
     source: str
+    adapted_summary: Optional[str] = None

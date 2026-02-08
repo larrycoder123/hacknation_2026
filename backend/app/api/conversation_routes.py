@@ -22,6 +22,39 @@ _SOURCE_TYPE_MAP = {"SCRIPT": "script",
                     "KB": "response", "TICKET_RESOLUTION": "action"}
 
 
+_ADAPT_SUMMARY_PROMPT = """You are an AI assistant helping a customer support agent resolve an issue.
+
+Given the customer's issue and the best-matching knowledge source, write a short actionable summary (3-5 sentences) that tells the agent exactly what to do. Be direct and specific.
+
+Customer issue: {customer_issue}
+
+Knowledge source ({source_type}):
+{content}
+
+Write a concise, agent-facing summary of how to resolve this issue based on the knowledge above. Focus on the key steps and any important details. Do not include greetings or filler."""
+
+
+def _generate_adapted_summary(
+    customer_issue: str,
+    top_content: str,
+    top_source_type: str,
+) -> str:
+    """Generate a short LLM-adapted summary for the top suggestion."""
+    from app.rag.core import LLM
+    from app.rag.core.config import settings
+
+    llm = LLM(model=settings.openai_planning_model)
+    prompt = _ADAPT_SUMMARY_PROMPT.format(
+        customer_issue=customer_issue[:500],
+        source_type=top_source_type,
+        content=top_content[:1500],
+    )
+    return llm.chat(
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3,
+    )
+
+
 # ── Conversation endpoints ───────────────────────────────────────────
 
 
@@ -97,7 +130,24 @@ async def get_suggested_actions(conversation_id: str = Path(min_length=1, max_le
                 content=hit.content,
                 source=f"{hit.source_type}: {hit.source_id}",
             ))
-        return actions if actions else MOCK_SUGGESTIONS
+
+        if not actions:
+            return MOCK_SUGGESTIONS
+
+        # Generate adapted summary for the top suggestion
+        try:
+            top = actions[0]
+            adapted = await asyncio.to_thread(
+                _generate_adapted_summary,
+                customer_issue=query,
+                top_content=top.content,
+                top_source_type=top.source,
+            )
+            actions[0] = top.model_copy(update={"adapted_summary": adapted})
+        except Exception:
+            logger.exception("Failed to generate adapted summary, returning raw results")
+
+        return actions
 
     except Exception:
         logger.exception(

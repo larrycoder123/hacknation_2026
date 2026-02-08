@@ -44,6 +44,7 @@ export interface SuggestedAction {
   description: string;
   content: string;
   source: string;
+  adapted_summary?: string;
 }
 
 export interface CloseConversationPayload {

@@ -2,10 +2,10 @@
 
 import { SuggestedAction, ActionType } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Sparkles, Terminal, MessageSquare, AlertCircle, RefreshCw, Check } from 'lucide-react';
+import { Sparkles, Terminal, MessageSquare, AlertCircle, RefreshCw, Star } from 'lucide-react';
 import ExpandableText from './ExpandableText';
+import MarkdownRenderer from './MarkdownRenderer';
 
 interface AIAssistantProps {
     suggestions: SuggestedAction[];
@@ -98,69 +98,138 @@ export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, 
                             </div>
                         ) : (
                             <>
-                                <div className="flex justify-between items-center px-1 pb-1">
-                                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Top Suggestions</span>
-                                </div>
-                                {suggestions.map((suggestion) => (
-                                    <div
-                                        key={suggestion.id}
-                                        className="group p-3 border border-border rounded-md bg-card hover:border-border/80 transition-all shadow-sm space-y-2.5"
-                                    >
-                                        <div className="flex justify-between items-start">
-                                            <div className="flex items-center gap-2">
-                                                <div className="p-1 rounded-md bg-muted/50 border border-border/50">
-                                                    <ActionIcon type={suggestion.type} />
+                                {/* ── Top Suggestion (adapted) ── */}
+                                {suggestions.length > 0 && (() => {
+                                    const top = suggestions[0];
+                                    const rest = suggestions.slice(1);
+                                    return (
+                                        <>
+                                            <div className="flex items-center gap-1.5 px-1 pb-1">
+                                                <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                                                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Best Match</span>
+                                                <ConfidenceScore score={top.confidence_score} />
+                                            </div>
+
+                                            <div className="p-3.5 border border-primary/30 rounded-lg bg-primary/5 space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="p-1 rounded-md bg-primary/10 border border-primary/20">
+                                                            <ActionIcon type={top.type} />
+                                                        </div>
+                                                        <h3 className="text-sm font-semibold text-foreground leading-tight">{top.title}</h3>
+                                                    </div>
                                                 </div>
-                                                <span className="text-xs font-medium text-muted-foreground capitalize">{suggestion.type}</span>
+
+                                                {/* Adapted summary */}
+                                                {top.adapted_summary && (
+                                                    <div className="text-sm text-foreground/90 leading-relaxed">
+                                                        <MarkdownRenderer content={top.adapted_summary} />
+                                                    </div>
+                                                )}
+
+                                                {/* Source reference */}
+                                                <div className="flex items-center justify-between pt-2 border-t border-primary/10">
+                                                    <span className="text-[10px] text-muted-foreground font-medium">
+                                                        {top.source}
+                                                    </span>
+                                                    {top.type === 'script' && (
+                                                        <Button
+                                                            onClick={() => onApplySuggestion(top)}
+                                                            size="sm"
+                                                            className="h-6 text-[10px] bg-foreground text-background hover:bg-foreground/90 gap-1.5 px-2.5 shadow-sm"
+                                                        >
+                                                            <Terminal className="w-3 h-3" />
+                                                            Run Script
+                                                        </Button>
+                                                    )}
+                                                </div>
+
+                                                {/* Expandable full content */}
+                                                <details className="group">
+                                                    <summary className="text-[10px] text-muted-foreground cursor-pointer hover:text-foreground transition-colors select-none">
+                                                        View full source content
+                                                    </summary>
+                                                    <div className="mt-2 bg-muted/30 rounded-md p-2.5 border border-border/50">
+                                                        <ExpandableText
+                                                            content={top.content}
+                                                            maxLength={300}
+                                                            isMarkdown={top.type !== 'script'}
+                                                            className={top.type === 'script' ? "font-mono text-xs" : ""}
+                                                        />
+                                                    </div>
+                                                </details>
                                             </div>
-                                            <ConfidenceScore score={suggestion.confidence_score} />
-                                        </div>
 
-                                        <div className="space-y-1">
-                                            <h3 className="text-sm font-medium text-foreground leading-tight">{suggestion.title}</h3>
-                                            <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                                                {suggestion.description}
-                                            </p>
-                                        </div>
+                                            {/* ── Other Suggestions ── */}
+                                            {rest.length > 0 && (
+                                                <>
+                                                    <div className="flex items-center px-1 pt-3 pb-1">
+                                                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Other Suggestions</span>
+                                                    </div>
+                                                    {rest.map((suggestion) => (
+                                                        <div
+                                                            key={suggestion.id}
+                                                            className="group p-3 border border-border rounded-md bg-card hover:border-border/80 transition-all shadow-sm space-y-2.5"
+                                                        >
+                                                            <div className="flex justify-between items-start">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="p-1 rounded-md bg-muted/50 border border-border/50">
+                                                                        <ActionIcon type={suggestion.type} />
+                                                                    </div>
+                                                                    <span className="text-xs font-medium text-muted-foreground capitalize">{suggestion.type}</span>
+                                                                </div>
+                                                                <ConfidenceScore score={suggestion.confidence_score} />
+                                                            </div>
 
-                                        {suggestion.type === 'script' && (
-                                            <div className="bg-muted/30 rounded-md p-2.5 border border-border/50">
-                                                <ExpandableText
-                                                    content={suggestion.content}
-                                                    maxLength={150}
-                                                    className="font-mono text-xs"
-                                                />
-                                            </div>
-                                        )}
+                                                            <div className="space-y-1">
+                                                                <h3 className="text-sm font-medium text-foreground leading-tight">{suggestion.title}</h3>
+                                                                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                                                                    {suggestion.description}
+                                                                </p>
+                                                            </div>
 
-                                        {suggestion.type === 'response' && (
-                                            <div className="bg-muted/30 rounded-md p-2.5 border border-border/50">
-                                                <ExpandableText
-                                                    content={suggestion.content}
-                                                    maxLength={200}
-                                                    isMarkdown={true}
-                                                />
-                                            </div>
-                                        )}
+                                                            {suggestion.type === 'script' && (
+                                                                <div className="bg-muted/30 rounded-md p-2.5 border border-border/50">
+                                                                    <ExpandableText
+                                                                        content={suggestion.content}
+                                                                        maxLength={150}
+                                                                        className="font-mono text-xs"
+                                                                    />
+                                                                </div>
+                                                            )}
 
-                                        <div className="flex items-center justify-between pt-2 border-t border-border/40">
-                                            <span className="text-[10px] text-muted-foreground truncate max-w-[100px] opacity-70">
-                                                {suggestion.source}
-                                            </span>
+                                                            {suggestion.type === 'response' && (
+                                                                <div className="bg-muted/30 rounded-md p-2.5 border border-border/50">
+                                                                    <ExpandableText
+                                                                        content={suggestion.content}
+                                                                        maxLength={200}
+                                                                        isMarkdown={true}
+                                                                    />
+                                                                </div>
+                                                            )}
 
-                                            {suggestion.type === 'script' && (
-                                                <Button
-                                                    onClick={() => onApplySuggestion(suggestion)}
-                                                    size="sm"
-                                                    className="h-6 text-[10px] bg-foreground text-background hover:bg-foreground/90 gap-1.5 px-2.5 shadow-sm"
-                                                >
-                                                    <Terminal className="w-3 h-3" />
-                                                    Run
-                                                </Button>
+                                                            <div className="flex items-center justify-between pt-2 border-t border-border/40">
+                                                                <span className="text-[10px] text-muted-foreground truncate max-w-[100px] opacity-70">
+                                                                    {suggestion.source}
+                                                                </span>
+                                                                {suggestion.type === 'script' && (
+                                                                    <Button
+                                                                        onClick={() => onApplySuggestion(suggestion)}
+                                                                        size="sm"
+                                                                        className="h-6 text-[10px] bg-foreground text-background hover:bg-foreground/90 gap-1.5 px-2.5 shadow-sm"
+                                                                    >
+                                                                        <Terminal className="w-3 h-3" />
+                                                                        Run
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </>
                                             )}
-                                        </div>
-                                    </div>
-                                ))}
+                                        </>
+                                    );
+                                })()}
                             </>
                         )}
                     </div>
