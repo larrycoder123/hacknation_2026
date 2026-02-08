@@ -176,9 +176,9 @@ These must exist in Supabase (run via SQL Editor):
 
 | Function | Purpose | Definition |
 |----------|---------|------------|
-| `match_corpus(query_embedding, p_top_k, p_source_types, p_category)` | Vector similarity search on `retrieval_corpus` | `backend/app/rag/db/rpc_functions.sql` |
-| `increment_corpus_usage(p_source_type, p_source_id)` | Bump usage_count after successful retrieval | Same file |
-| `update_corpus_confidence(p_source_type, p_source_id, p_delta, p_increment_usage)` | Adjust confidence score | `backend/HANDOFF_DATABASE.md` |
+| `match_corpus(query_embedding, p_top_k, p_source_types, p_category)` | Vector similarity search on `retrieval_corpus` | `backend/db/schema.sql` |
+| `increment_corpus_usage(p_source_type, p_source_id)` | Bump usage_count after successful retrieval | `backend/db/schema.sql` |
+| `update_corpus_confidence(p_source_type, p_source_id, p_delta, p_increment_usage)` | Adjust confidence score | `backend/db/schema.sql` |
 
 ---
 
@@ -348,15 +348,13 @@ backend/
 │       │   ├── rag.py                 # RagInput, RagState, RagResult, CorpusHit, Citation
 │       │   ├── corpus.py              # GapDetectionInput, GapDetectionResult, KnowledgeDecision
 │       │   └── retrieval_log.py       # RetrievalLogEntry, RetrievalOutcome
-│       ├── db/
-│       │   └── rpc_functions.sql      # match_corpus() + increment_corpus_usage() SQL
 │       └── tests/
 │           ├── test_rag.py            # Model tests
 │           └── test_nodes.py          # Node function tests
 ├── scripts/
 │   └── seed_mock_data.py             # Seed/cleanup mock data for testing
 ├── HANDOFF_FRONTEND.md               # Frontend changes needed (types, close flow)
-├── HANDOFF_DATABASE.md               # DB migrations needed (learning_events, retrieval_log)
+├── db/schema.sql                    # Complete DB schema reference (source of truth: Supabase)
 └── .env.example
 
 frontend/
@@ -402,12 +400,7 @@ CORS_ORIGINS=http://localhost:3000
 
 1. The main tables (`conversations`, `tickets`, `scripts_master`, `knowledge_articles`, `kb_lineage`, `learning_events`, `retrieval_corpus`) should already exist from the schema migrations.
 
-2. Run the RPC functions in SQL Editor:
-   - `backend/app/rag/db/rpc_functions.sql` — creates `match_corpus()` and `increment_corpus_usage()`
-   - `update_corpus_confidence()` — see `backend/HANDOFF_DATABASE.md`
-
-3. Run the schema modifications in SQL Editor:
-   - See `backend/HANDOFF_DATABASE.md` — adds `event_type` and `flagged_kb_article_id` to `learning_events`, modifies `retrieval_log` (nullable `ticket_number`, adds `conversation_id`)
+2. All tables, indexes, RPC functions, and seed data are documented in `backend/db/schema.sql`. The Supabase project already has all migrations applied.
 
 ### Running
 

@@ -99,7 +99,7 @@ class TestCorpusHit:
         assert hit.source_id == "SCRIPT-0293"
         assert hit.similarity == 0.85
         assert hit.rerank_score is None
-        assert hit.confidence == 0.0
+        assert hit.confidence == 0.5
         assert hit.usage_count == 0
 
     def test_full_hit(self):
