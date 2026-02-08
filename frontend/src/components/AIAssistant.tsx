@@ -183,9 +183,12 @@ export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, 
 
                                                             <div className="space-y-1">
                                                                 <h3 className="text-sm font-medium text-foreground leading-tight">{suggestion.title}</h3>
-                                                                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                                                                    {suggestion.description}
-                                                                </p>
+                                                                <ExpandableText
+                                                                    content={suggestion.description}
+                                                                    maxLength={100}
+                                                                    maxLines={2}
+                                                                    className="text-xs text-muted-foreground leading-relaxed"
+                                                                />
                                                             </div>
 
                                                             {suggestion.type === 'script' && (
