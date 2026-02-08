@@ -169,14 +169,13 @@ def enrich_sources(state: RagState) -> dict:
     if script_ids:
         script_result = (
             client.table("scripts_master")
-            .select("script_id, script_purpose, script_inputs")
+            .select("script_id, script_purpose")
             .in_("script_id", script_ids)
             .execute()
         )
         for row in script_result.data:
             script_meta_map[row["script_id"]] = {
                 "purpose": row.get("script_purpose", ""),
-                "inputs": row.get("script_inputs", ""),
             }
 
     # Batch lookup: TICKET_RESOLUTION -> tickets
@@ -217,7 +216,6 @@ def enrich_sources(state: RagState) -> dict:
             detail = detail.model_copy(
                 update={
                     "script_purpose": meta["purpose"],
-                    "script_inputs": meta["inputs"],
                 }
             )
         elif hit.source_type == "TICKET_RESOLUTION" and hit.source_id in ticket_meta_map:
