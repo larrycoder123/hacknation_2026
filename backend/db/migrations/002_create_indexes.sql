@@ -43,16 +43,20 @@ create index idx_script_placeholders_placeholder on script_placeholders (placeho
 create index idx_corpus_source_type      on retrieval_corpus (source_type);
 create index idx_corpus_category         on retrieval_corpus (category);
 
--- Retrieval corpus: HNSW for vector similarity search (cosine distance)
-create index idx_corpus_embedding on retrieval_corpus
-    using hnsw (embedding vector_cosine_ops)
-    with (m = 16, ef_construction = 64);
+-- Retrieval corpus: vector similarity search (cosine distance)
+-- Note: HNSW caps at 2000 dims. With text-embedding-3-large (3072) and ~4k rows,
+-- exact cosine scan is fast enough. Add IVFFlat if corpus grows past ~50k rows.
 
 -- Full-text search (GIN) on retrieval corpus
 create index idx_corpus_content_fts on retrieval_corpus
     using gin (to_tsvector('english', coalesce(content, '')));
 create index idx_corpus_title_fts on retrieval_corpus
     using gin (to_tsvector('english', coalesce(title, '')));
+
+-- Retrieval log: find attempts by ticket, filter by outcome
+create index idx_retrieval_log_ticket    on retrieval_log (ticket_number);
+create index idx_retrieval_log_outcome   on retrieval_log (outcome);
+create index idx_retrieval_log_source    on retrieval_log (source_type, source_id);
 
 -- Full-text search on source tables (for non-RAG queries)
 create index idx_conversations_transcript_fts on conversations
