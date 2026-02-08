@@ -1,5 +1,17 @@
 "use client";
 
+/**
+ * Learning Review page — two-column layout for reviewing AI-drafted KB articles.
+ *
+ * Left:  LearningEventList (filterable by status: pending / approved / rejected)
+ * Right: LearningEventDetail (gap description, source ticket, proposed KB article,
+ *        approve/reject buttons)
+ *
+ * When a reviewer approves a GAP event the drafted KB article is activated and
+ * embedded into the retrieval corpus. Rejecting archives the draft. For
+ * CONTRADICTION events, approval replaces the flagged article with corrected content.
+ */
+
 import { useState, useEffect, useCallback } from "react";
 import {
   LearningEventDetail as LearningEventDetailType,

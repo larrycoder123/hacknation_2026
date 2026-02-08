@@ -20,7 +20,7 @@ export interface TemplateContext {
  * - {{agent_name}} - Current agent name (placeholder: "Support Agent")
  */
 function fillTemplate(template: string, context: TemplateContext): string {
-    const { conversation, messages } = context;
+    const { conversation } = context;
 
     const replacements: Record<string, string> = {
         "{{conversation_id}}": conversation?.id || "N/A",

@@ -1,3 +1,11 @@
+/**
+ * Shared TypeScript interfaces matching the backend Pydantic schemas.
+ *
+ * All field names use snake_case to match the JSON returned by the FastAPI
+ * backend. The ConversationDisplay interface provides a camelCase variant
+ * for use in React components (converted via toConversationDisplay).
+ */
+
 export type Priority = 'High' | 'Medium' | 'Low';
 export type ConversationStatus = 'Open' | 'Pending' | 'Resolved' | 'Closed';
 

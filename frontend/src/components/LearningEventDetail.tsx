@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { BookOpen } from "lucide-react";
 import ExpandableText from "./ExpandableText";
-import MarkdownRenderer from "./MarkdownRenderer";
 
 interface LearningEventDetailProps {
   event: LearningEventDetailType | null;

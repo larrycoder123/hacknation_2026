@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SupportMind Frontend
 
-## Getting Started
+Next.js 16 agent workspace for customer support. Two-page app: a live conversation view with AI-assisted suggestions, and a learning event review page.
 
-First, run the development server:
+## Project Structure
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+src/
+├── app/
+│   ├── page.tsx                     # Agent workspace (3-column layout)
+│   ├── review/page.tsx              # Learning event review page
+│   ├── layout.tsx                   # Root layout
+│   └── api/client.ts               # Backend API client (fetch wrappers)
+├── components/
+│   ├── AppNav.tsx                   # Top navigation bar
+│   ├── ConversationQueue.tsx        # Left sidebar: conversation list
+│   ├── ConversationDetail.tsx       # Center: chat messages + input
+│   ├── AIAssistant.tsx              # Right sidebar: RAG suggestions
+│   ├── CloseConversationModal.tsx   # Close dialog with resolution notes
+│   ├── LearningEventList.tsx        # Learning event list (review page)
+│   ├── LearningEventDetail.tsx      # Learning event detail (review page)
+│   ├── ExpandableText.tsx           # Collapsible long text display
+│   ├── MarkdownRenderer.tsx         # Markdown rendering for AI responses
+│   └── ui/                          # Shadcn/ui primitives (button, badge, input, etc.)
+├── hooks/
+│   └── useConversationState.ts      # Conversation state management
+├── lib/
+│   ├── data.ts                      # Static/shared data helpers
+│   ├── templateFiller.ts            # Dynamic placeholder filling for scripts
+│   └── utils.ts                     # Utility functions (cn, etc.)
+└── types/
+    └── index.ts                     # TypeScript interfaces matching backend schemas
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Pages
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Route | Page | Description |
+|-------|------|-------------|
+| `/` | Agent Workspace | 3-column layout: conversation queue, chat detail, AI assistant sidebar |
+| `/review` | Learning Events | List of learning events (GAP/CONTRADICTION) with approve/reject actions |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## API Client
 
-## Learn More
+`src/app/api/client.ts` wraps all backend calls:
 
-To learn more about Next.js, take a look at the following resources:
+- `getConversations()` — list conversations
+- `getConversation(id)` — single conversation
+- `getMessages(id)` — message history
+- `getSuggestedActions(id)` — trigger RAG pipeline
+- `closeConversation(id, payload)` — close + generate ticket + run learning
+- `reviewLearningEvent(id, decision)` — approve/reject KB draft
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+All calls go to `http://localhost:8000` by default (configurable via `NEXT_PUBLIC_API_URL`).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Development
 
-## Deploy on Vercel
+```bash
+npm install
+npm run dev      # http://localhost:3000
+npm run build    # Production build
+npm run lint     # ESLint
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Requires the backend running at port 8000 (see [backend/README.md](../backend/README.md)).

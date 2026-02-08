@@ -1,5 +1,15 @@
 "use client";
 
+/**
+ * AppNav — icon-based vertical sidebar for page navigation.
+ *
+ * Two routes:
+ *   /        Support Dashboard (agent workspace)
+ *   /review  Learning Review (KB draft approval/rejection)
+ *
+ * Active route is highlighted with a primary-colored background.
+ */
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MessageSquare, BookOpen } from "lucide-react";

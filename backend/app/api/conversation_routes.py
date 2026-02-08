@@ -1,3 +1,10 @@
+"""Conversation API endpoints.
+
+Serves mock conversations and messages from app/data/, triggers RAG-powered
+suggested actions, and handles the close-conversation flow (ticket generation
++ self-learning pipeline).
+"""
+
 import asyncio
 import logging
 from typing import List, Optional

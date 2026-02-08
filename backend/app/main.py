@@ -1,3 +1,9 @@
+"""FastAPI application entry point.
+
+Configures CORS middleware and registers the conversation and learning
+API routers under the /api prefix. Health check at GET /.
+"""
+
 import os
 
 from fastapi import FastAPI

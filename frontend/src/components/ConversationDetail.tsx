@@ -5,9 +5,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { Send, X, MoreHorizontal, Paperclip } from 'lucide-react';
+import { X, MoreHorizontal } from 'lucide-react';
 import MarkdownRenderer from './MarkdownRenderer';
 
 interface ConversationDetailProps {

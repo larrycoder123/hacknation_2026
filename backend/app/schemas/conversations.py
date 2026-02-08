@@ -1,3 +1,9 @@
+"""Pydantic models for conversation endpoints.
+
+Defines the Conversation model (served from mock data), the close-conversation
+request payload, and the close-conversation response (ticket + learning result).
+"""
+
 from typing import Optional, Literal
 from pydantic import BaseModel, Field
 from .tickets import Priority, Ticket

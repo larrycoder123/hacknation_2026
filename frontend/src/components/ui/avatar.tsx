@@ -22,9 +22,10 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
                 {...props}
             >
                 {src ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                         src={src}
-                        alt={alt}
+                        alt={alt || ""}
                         className="aspect-square h-full w-full object-cover"
                     />
                 ) : (

@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * LearningEventList — left sidebar on the /review page.
+ *
+ * Displays learning events (GAP / CONTRADICTION / CONFIRMED) with status tabs
+ * (Pending / Approved / Rejected). Each item shows the draft summary, trigger
+ * ticket number, and relative timestamp. Selecting an event loads its detail
+ * in the adjacent LearningEventDetail panel.
+ */
+
 import { LearningEventDetail, ReviewStatus } from "@/types";
 import { cn } from "@/lib/utils";
 import { BookOpen } from "lucide-react";
