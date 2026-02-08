@@ -163,3 +163,12 @@ class TestReviewLearningEvent:
         payload = {"decision": "Approved", "reviewer_role": "Tier 3 Support"}
         resp = client.post("/api/learning-events/LE-aabbccddeeff/review", json=payload)
         assert resp.status_code == 502
+
+    @patch("app.api.learning_routes.learning_service.review_learning_event",
+           new_callable=AsyncMock)
+    def test_unexpected_error(self, mock_review):
+        """Non-APIError exceptions return 500."""
+        mock_review.side_effect = RuntimeError("something unexpected")
+        payload = {"decision": "Approved", "reviewer_role": "Tier 3 Support"}
+        resp = client.post("/api/learning-events/LE-aabbccddeeff/review", json=payload)
+        assert resp.status_code == 500

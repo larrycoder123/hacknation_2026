@@ -1,5 +1,18 @@
 "use client";
 
+/**
+ * Agent Workspace — main support dashboard page.
+ *
+ * Three-column layout:
+ *   Left:   ConversationQueue (inbox with search and priority badges)
+ *   Center: ConversationDetail (chat messages, agent input, close button)
+ *   Right:  AIAssistant (RAG-powered suggestions triggered by "Analyze")
+ *
+ * Selecting a conversation loads its messages. Clicking "Analyze" triggers the
+ * RAG pipeline. Closing a resolved conversation generates a ticket and runs the
+ * self-learning pipeline (gap detection, confidence updates, KB drafting).
+ */
+
 import { useState } from "react";
 import { SuggestedAction } from "@/types";
 import ConversationQueue from "@/components/ConversationQueue";

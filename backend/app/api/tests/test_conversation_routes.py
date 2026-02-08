@@ -14,6 +14,16 @@ from app.schemas.learning import SelfLearningResult
 client = TestClient(app)
 
 
+# ── Root endpoint ─────────────────────────────────────────────────────
+
+
+class TestRootEndpoint:
+    def test_health_check(self):
+        resp = client.get("/")
+        assert resp.status_code == 200
+        assert resp.json() == {"message": "Service is running"}
+
+
 # ── Fixtures ─────────────────────────────────────────────────────────
 
 MOCK_CONV = Conversation(
@@ -98,7 +108,7 @@ class TestGetSuggestedActions:
         mock_hit.content = "Short content"
         mock_result.top_hits = [mock_hit]
 
-        with patch("app.rag.agent.graph.run_rag", return_value=mock_result):
+        with patch("app.rag.agent.graph.run_rag_retrieval_only", return_value=mock_result):
             resp = client.get("/api/conversations/1024/suggested-actions")
             assert resp.status_code == 200
             data = resp.json()
@@ -110,7 +120,7 @@ class TestGetSuggestedActions:
     @patch("app.api.conversation_routes.MOCK_SUGGESTIONS", [{"id": "mock", "type": "action", "confidence_score": 0.5, "title": "Mock", "description": "d", "content": "c", "source": "s"}])
     def test_falls_back_on_rag_failure(self):
         """When RAG throws, falls back to mock suggestions."""
-        with patch("app.rag.agent.graph.run_rag", side_effect=RuntimeError("fail")):
+        with patch("app.rag.agent.graph.run_rag_retrieval_only", side_effect=RuntimeError("fail")):
             resp = client.get("/api/conversations/1024/suggested-actions")
             assert resp.status_code == 200
 
@@ -189,6 +199,86 @@ class TestCloseConversation:
             data = resp.json()
             assert len(data["warnings"]) > 0
             assert "could not be saved" in data["warnings"][0]
+
+    @patch("app.api.conversation_routes.MOCK_CONVERSATIONS", {"1024": MOCK_CONV})
+    @patch("app.api.conversation_routes.MOCK_MESSAGES", {"1024": [MOCK_MSG]})
+    @patch("app.services.ticket_service.generate_ticket", new_callable=AsyncMock)
+    def test_close_ticket_generation_failure(self, mock_gen):
+        """When ticket generation itself throws, conversation still closes."""
+        mock_gen.side_effect = RuntimeError("LLM down")
+        payload = {
+            "conversation_id": "1024",
+            "resolution_type": "Resolved Successfully",
+            "create_ticket": True,
+        }
+        resp = client.post("/api/conversations/1024/close", json=payload)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "success"
+        assert data["ticket"] is None
+
+    @patch("app.api.conversation_routes.MOCK_CONVERSATIONS", {"1024": MOCK_CONV})
+    @patch("app.api.conversation_routes.MOCK_MESSAGES", {"1024": [MOCK_MSG]})
+    @patch("app.services.ticket_service.generate_ticket", new_callable=AsyncMock)
+    @patch("app.services.ticket_service.save_ticket_to_db")
+    @patch("app.services.learning_service.run_post_conversation_learning", new_callable=AsyncMock)
+    def test_close_learning_pipeline_failure(self, mock_learn, mock_save, mock_gen):
+        """When learning pipeline throws, conversation still closes with ticket."""
+        ticket = Ticket(
+            subject="Test", description="Desc", resolution="Fixed", tags=["t"]
+        )
+        mock_gen.return_value = ticket
+        mock_save.return_value = "CS-AABBCCDD"
+        mock_learn.side_effect = RuntimeError("gap detection blew up")
+
+        payload = {
+            "conversation_id": "1024",
+            "resolution_type": "Resolved Successfully",
+            "create_ticket": True,
+        }
+        resp = client.post("/api/conversations/1024/close", json=payload)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["ticket"]["ticket_number"] == "CS-AABBCCDD"
+        assert data["learning_result"] is None
+
+    @patch("app.api.conversation_routes.MOCK_CONVERSATIONS", {"1024": MOCK_CONV})
+    @patch("app.api.conversation_routes.MOCK_MESSAGES", {"1024": [MOCK_MSG]})
+    @patch("app.api.conversation_routes.MOCK_SUGGESTIONS", [{"id": "mock", "type": "action", "confidence_score": 0.5, "title": "Mock", "description": "d", "content": "c", "source": "s"}])
+    def test_rag_empty_results_falls_back(self):
+        """When RAG returns zero hits, falls back to mock suggestions."""
+        mock_result = MagicMock()
+        mock_result.top_hits = []
+
+        with patch("app.rag.agent.graph.run_rag_retrieval_only", return_value=mock_result):
+            resp = client.get("/api/conversations/1024/suggested-actions")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert len(data) >= 1
+            assert data[0]["id"] == "mock"
+
+    @patch("app.api.conversation_routes.MOCK_CONVERSATIONS", {"1024": MOCK_CONV})
+    @patch("app.api.conversation_routes.MOCK_MESSAGES", {"1024": [MOCK_MSG]})
+    def test_adapted_summary_failure_still_returns_actions(self):
+        """When adapted summary fails, actions are returned without summary."""
+        mock_result = MagicMock()
+        mock_hit = MagicMock()
+        mock_hit.source_type = "KB"
+        mock_hit.source_id = "KB-001"
+        mock_hit.rerank_score = 0.9
+        mock_hit.similarity = 0.85
+        mock_hit.title = "KB Article"
+        mock_hit.content = "Some content"
+        mock_result.top_hits = [mock_hit]
+
+        with patch("app.rag.agent.graph.run_rag_retrieval_only", return_value=mock_result), \
+             patch("app.api.conversation_routes._generate_adapted_summary",
+                   side_effect=RuntimeError("LLM error")):
+            resp = client.get("/api/conversations/1024/suggested-actions")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert len(data) == 1
+            assert data[0]["type"] == "response"
 
     @patch("app.api.conversation_routes.MOCK_CONVERSATIONS", {})
     def test_close_not_found(self):

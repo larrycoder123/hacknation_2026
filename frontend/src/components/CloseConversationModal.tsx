@@ -1,5 +1,15 @@
 "use client";
 
+/**
+ * CloseConversationModal — three-phase dialog for closing a conversation.
+ *
+ * Phase 1 (form):    Agent picks resolution type + optional notes.
+ * Phase 2 (loading): Spinner while the backend generates a ticket and runs
+ *                    the learning pipeline (can be dismissed).
+ * Phase 3 (result):  Shows ticket number + learning classification
+ *                    (SAME_KNOWLEDGE / NEW_KNOWLEDGE / CONTRADICTS).
+ */
+
 import { useState } from 'react';
 import { CloseConversationPayload, CloseConversationResponse } from '@/types';
 import { Button } from '@/components/ui/button';

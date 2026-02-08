@@ -1,6 +1,17 @@
+/**
+ * Central state hook for the agent workspace page.
+ *
+ * Manages:
+ *   - Conversation list (fetched on mount from backend)
+ *   - Selected conversation + its messages (lazy-loaded on selection)
+ *   - AI suggestions (fetched on demand via getSuggestions, template-filled)
+ *   - Close flow (calls backend close endpoint, appends system messages for
+ *     ticket number and learning classification to the chat)
+ *   - Loading / error state for each async operation
+ */
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-    Conversation,
     Message,
     SuggestedAction,
     CloseConversationPayload,

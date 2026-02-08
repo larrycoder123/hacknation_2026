@@ -1,3 +1,9 @@
+/**
+ * Root layout — wraps all pages with Geist font stack, dark theme, and the
+ * left-hand AppNav sidebar. All page content renders inside a flex container
+ * next to the nav.
+ */
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
