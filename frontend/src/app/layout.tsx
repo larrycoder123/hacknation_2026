@@ -1,3 +1,9 @@
+/**
+ * Root layout — wraps all pages with Geist font stack, dark theme, and the
+ * left-hand AppNav sidebar. All page content renders inside a flex container
+ * next to the nav.
+ */
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -14,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pulse | Intelligent Support",
+  title: "SupportMind | Intelligent Support",
   description: "AI-powered customer support dashboard designed for modern teams.",
 };
 
