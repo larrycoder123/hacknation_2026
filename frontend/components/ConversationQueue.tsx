@@ -4,7 +4,7 @@ import { ConversationDisplay, Priority } from '../app/types';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, Zap } from 'lucide-react';
 
 interface ConversationQueueProps {
     conversations: ConversationDisplay[];
@@ -39,8 +39,13 @@ export default function ConversationQueue({ conversations, selectedConversationI
         <div className="w-80 h-full flex flex-col bg-background/50 backdrop-blur-xl flex-shrink-0 border border-border rounded-lg shadow-sm overflow-hidden">
             <div className="p-4 border-b border-border/50 space-y-4 bg-background/50">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-foreground tracking-tight">Inbox</h2>
-                    <div className="text-xs text-muted-foreground font-medium bg-secondary px-2 py-0.5 rounded-md">
+                    <div className="flex items-center gap-2">
+                        <div className="bg-primary/10 p-1 rounded-md border border-primary/20">
+                            <Zap className="h-3.5 w-3.5 text-primary fill-primary/20" />
+                        </div>
+                        <h2 className="text-sm font-semibold text-foreground tracking-tight">Pulse Inbox</h2>
+                    </div>
+                    <div className="text-xs text-muted-foreground font-medium bg-secondary px-2 py-0.5 rounded-md tabular-nums">
                         {filteredConversations.length}
                     </div>
                 </div>
