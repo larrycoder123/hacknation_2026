@@ -11,6 +11,7 @@ from ..core.llm import generate_structured_output
 from ..db.client import get_supabase
 from ..schemas.tickets import Priority, Ticket, TicketDBRow
 from ..schemas.messages import Message
+from .data_sanitizer import sanitize_messages, sanitize_resolution_notes
 
 logger = logging.getLogger(__name__)
 
@@ -60,11 +61,20 @@ async def generate_ticket(
     messages: List[Message],
     resolution_notes: Optional[str] = None,
     custom_tags: Optional[List[str]] = None,
+    customer_name: Optional[str] = None,
 ) -> Ticket:
     """
     Generate a ticket (case record) from a resolved conversation.
+    
+    Before processing, conversation messages and resolution notes are sanitized
+    to remove PII and sensitive information (emails, phone numbers, SSNs,
+    credit cards, customer names, etc.).
     """
-    conversation_text = _format_conversation(messages, resolution_notes)
+    # Sanitize messages and notes to remove PII before sending to LLM
+    sanitized_messages = sanitize_messages(messages, customer_name=customer_name)
+    sanitized_notes = sanitize_resolution_notes(resolution_notes, customer_name=customer_name)
+    
+    conversation_text = _format_conversation(sanitized_messages, sanitized_notes)
 
     user_prompt = f"""Please analyze this resolved support conversation and create a ticket record.
 

@@ -134,6 +134,7 @@ async def close_conversation(
                 conversation_subject=conversation.subject,
                 messages=messages,
                 resolution_notes=payload.notes,
+                customer_name=conversation.customer_name,
             )
             # Clear any LLM-generated ticket_number — only the DB-assigned one matters
             ticket.ticket_number = None

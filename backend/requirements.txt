@@ -10,3 +10,6 @@ cohere
 supabase
 postgrest
 pytest
+presidio-analyzer
+presidio-anonymizer
+spacy
