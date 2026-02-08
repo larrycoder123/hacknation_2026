@@ -253,8 +253,6 @@ def write_answer(state: RagState) -> dict:
         parts: list[str] = []
         if detail.script_purpose:
             parts.append(f"Purpose: {detail.script_purpose}")
-        if detail.script_inputs:
-            parts.append(f"Inputs: {detail.script_inputs}")
         if detail.ticket_subject:
             parts.append(f"Subject: {detail.ticket_subject}")
         if detail.ticket_root_cause:

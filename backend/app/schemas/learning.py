@@ -17,9 +17,10 @@ class RetrievalLogEntry(BaseModel):
     """A single RAG search attempt stored in retrieval_log."""
 
     retrieval_id: str
-    ticket_number: str
-    attempt_number: int
-    query_text: str
+    ticket_number: str | None = None
+    conversation_id: str | None = None
+    attempt_number: int = 1
+    query_text: str = ""
     source_type: str | None = None
     source_id: str | None = None
     similarity_score: float | None = None
