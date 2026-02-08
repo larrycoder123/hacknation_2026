@@ -2,12 +2,21 @@
 
 from .actions import SuggestedAction
 from .knowledge import KnowledgeArticle, KnowledgeArticleCreateRequest
+from .learning import (
+    ConfidenceUpdate,
+    KBDraftFromGap,
+    KBLineageRecord,
+    LearningEventRecord,
+    RetrievalLogEntry,
+    ReviewDecision,
+    SelfLearningResult,
+)
 from .messages import Message, Sender
 from .tickets import (
-    Ticket,
     CloseTicketPayload,
     CloseTicketResponse,
     Priority,
+    Ticket,
     TicketStatus,
 )
 
@@ -17,6 +26,14 @@ __all__ = [
     # Knowledge
     "KnowledgeArticle",
     "KnowledgeArticleCreateRequest",
+    # Learning
+    "ConfidenceUpdate",
+    "KBDraftFromGap",
+    "KBLineageRecord",
+    "LearningEventRecord",
+    "RetrievalLogEntry",
+    "ReviewDecision",
+    "SelfLearningResult",
     # Messages
     "Message",
     "Sender",

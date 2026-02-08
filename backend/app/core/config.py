@@ -1,8 +1,8 @@
 """Application configuration using Pydantic Settings."""
 
-from typing import Optional
-from pydantic_settings import BaseSettings
 from functools import lru_cache
+
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -11,9 +11,23 @@ class Settings(BaseSettings):
     app_name: str = "SupportMind Backend"
     debug: bool = False
 
-    # LLM configuration (simplified - no temperature/max_tokens)
-    openai_api_key: Optional[str] = None
+    # LLM configuration
+    openai_api_key: str | None = None
     openai_model: str = "gpt-4o-mini"
+
+    # Supabase
+    supabase_url: str
+    supabase_key: str
+
+    # Embedding
+    embedding_model: str = "text-embedding-3-large"
+    embedding_dimension: int = 3072
+
+    # Self-learning thresholds
+    gap_similarity_threshold: float = 0.75
+    confidence_delta_resolved: float = 0.10
+    confidence_delta_partial: float = 0.02
+    confidence_delta_unhelpful: float = -0.05
 
     class Config:
         env_file = ".env"

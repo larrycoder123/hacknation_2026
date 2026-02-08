@@ -1,13 +1,15 @@
 """LangChain-based LLM client for structured outputs."""
 
-from typing import Optional, Type, TypeVar
-from pydantic import BaseModel
+from typing import TypeVar
+
 from langchain_openai import ChatOpenAI
+from pydantic import BaseModel
+
 from .config import get_settings
 
 T = TypeVar("T", bound=BaseModel)
 
-_llm_instance: Optional[ChatOpenAI] = None
+_llm_instance: ChatOpenAI | None = None
 
 
 def get_llm() -> ChatOpenAI:
@@ -24,19 +26,35 @@ def get_llm() -> ChatOpenAI:
 
 async def generate_structured_output(
     prompt: str,
-    output_schema: Type[T],
-    system_prompt: Optional[str] = None,
+    output_schema: type[T],
+    system_prompt: str | None = None,
+    temperature: float | None = None,
 ) -> T:
-    """
-    Generate structured output from the LLM.
+    """Generate structured output from the LLM.
+
+    Args:
+        prompt: The user prompt.
+        output_schema: Pydantic model for the expected output.
+        system_prompt: Optional system instructions.
+        temperature: Optional temperature override (0=extraction, 0.3-0.7=drafting).
+
+    Returns:
+        Parsed Pydantic model instance.
     """
     llm = get_llm()
+    if temperature is not None:
+        settings = get_settings()
+        llm = ChatOpenAI(
+            model=settings.openai_model,
+            api_key=settings.openai_api_key,
+            temperature=temperature,
+        )
     structured_llm = llm.with_structured_output(output_schema)
 
-    messages = []
+    messages: list[tuple[str, str]] = []
     if system_prompt:
         messages.append(("system", system_prompt))
     messages.append(("user", prompt))
 
     result = await structured_llm.ainvoke(messages)
-    return result
+    return result  # type: ignore[return-value]

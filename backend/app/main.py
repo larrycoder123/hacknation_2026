@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .api import endpoints
+
+from .api import endpoints, learning_endpoints
 
 app = FastAPI(title="SupportMind Backend")
 
@@ -17,6 +18,8 @@ app.add_middleware(
 )
 
 app.include_router(endpoints.router, prefix="/api")
+app.include_router(learning_endpoints.router, prefix="/api")
+
 
 @app.get("/")
 async def root():
