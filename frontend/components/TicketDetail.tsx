@@ -1,4 +1,6 @@
-import { Ticket, Message } from '../app/types';
+"use client";
+
+import { TicketDisplay, Message } from '../app/types';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { Send, X, MoreHorizontal, Paperclip } from 'lucide-react';
 
 interface TicketDetailProps {
-    ticket: Ticket | null;
+    ticket: TicketDisplay | null;
     messages: Message[];
     onSendMessage: (content: string) => void;
     onCloseTicket: () => void;

@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from 'react';
 import { CloseTicketPayload } from '../app/types';
 import { Button } from '@/components/ui/button';

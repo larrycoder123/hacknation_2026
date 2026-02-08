@@ -1,30 +1,85 @@
-import { useState } from "react";
-import { Ticket, Message, SuggestedAction, CloseTicketPayload } from "./types";
-import { MOCK_TICKETS, MOCK_MESSAGES } from "./data";
+"use client";
+
+import { useState, useEffect } from "react";
+import {
+  Ticket,
+  Message,
+  SuggestedAction,
+  CloseTicketPayload,
+  TicketDisplay,
+  toTicketDisplay,
+  CloseTicketResponse
+} from "./types";
 import TicketQueue from "../components/TicketQueue";
 import TicketDetail from "../components/TicketDetail";
 import AIAssistant from "../components/AIAssistant";
 import CloseTicketModal from "../components/CloseTicketModal";
-import { fetchSuggestedActions, closeTicket } from "./api/client";
+import {
+  fetchTickets,
+  fetchTicketMessages,
+  fetchSuggestedActions,
+  closeTicket
+} from "./api/client";
 
 export default function Home() {
-  const [tickets, setTickets] = useState<Ticket[]>(MOCK_TICKETS);
+  const [tickets, setTickets] = useState<TicketDisplay[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Record<string, Message[]>>(MOCK_MESSAGES);
+  const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [suggestions, setSuggestions] = useState<SuggestedAction[]>([]);
+  const [isTicketsLoading, setIsTicketsLoading] = useState(true);
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
 
   // Lifted state for the input box
-  const [inputMessage, setInputMessage] = useState('');
+  const [inputMessage, setInputMessage] = useState("");
 
   const selectedTicket = tickets.find((t) => t.id === selectedTicketId) || null;
-  const currentMessages = selectedTicketId ? (messages[selectedTicketId] || []) : [];
+  const currentMessages = selectedTicketId ? messages[selectedTicketId] || [] : [];
+
+  // Fetch tickets from backend on mount
+  useEffect(() => {
+    const loadTickets = async () => {
+      try {
+        const backendTickets = await fetchTickets();
+        setTickets(backendTickets.map(toTicketDisplay));
+      } catch (error) {
+        console.error("Failed to fetch tickets:", error);
+      } finally {
+        setIsTicketsLoading(false);
+      }
+    };
+    loadTickets();
+  }, []);
+
+  // Fetch messages when a ticket is selected
+  useEffect(() => {
+    if (!selectedTicketId) return;
+
+    // Check if we already have messages for this ticket
+    if (messages[selectedTicketId]) return;
+
+    const loadMessages = async () => {
+      setIsMessagesLoading(true);
+      try {
+        const ticketMessages = await fetchTicketMessages(selectedTicketId);
+        setMessages((prev) => ({
+          ...prev,
+          [selectedTicketId]: ticketMessages,
+        }));
+      } catch (error) {
+        console.error("Failed to fetch messages:", error);
+      } finally {
+        setIsMessagesLoading(false);
+      }
+    };
+    loadMessages();
+  }, [selectedTicketId, messages]);
 
   const handleSelectTicket = (id: string) => {
     setSelectedTicketId(id);
     setSuggestions([]); // Reset suggestions on ticket switch
-    setInputMessage(''); // Reset input
+    setInputMessage(""); // Reset input
   };
 
   const handleSendMessage = (content: string) => {
@@ -32,10 +87,13 @@ export default function Home() {
 
     const newMessage: Message = {
       id: `m${Date.now()}`,
-      ticketId: selectedTicketId,
+      ticket_id: selectedTicketId,
       sender: "agent",
       content,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     };
 
     setMessages((prev) => ({
@@ -52,30 +110,25 @@ export default function Home() {
       setSuggestions(actions);
     } catch (error) {
       console.error("Failed to fetch suggestions:", error);
-      // Optional: Add toast notification here
     } finally {
       setIsSuggestionsLoading(false);
     }
   };
 
   const handleApplySuggestion = (suggestion: SuggestedAction) => {
-    if (suggestion.type === 'response') {
-      // "Summarize" and format logic (Mocked)
-      // In a real app, this would call an LLM to summarize the article based on the chat context.
-      // Here we'll just extract the "Customer Communication Template" part or create a summary.
-
-      // Simple heuristic for the mock:
+    if (suggestion.type === "response") {
+      // Extract customer communication template or format content
       let summary = suggestion.content;
       if (suggestion.content.includes("Customer Communication Template:")) {
-        summary = suggestion.content.split("Customer Communication Template:")[1].replace(/"/g, '').trim();
+        summary = suggestion.content
+          .split("Customer Communication Template:")[1]
+          .replace(/"/g, "")
+          .trim();
       } else {
-        // If no template, we just use the description or a placeholder summary
         summary = `Based on the article "${suggestion.title}", here is a summary:\n\n${suggestion.description}`;
       }
-
       setInputMessage(summary);
-    } else if (suggestion.type === 'script') {
-      // For scripts, we can maybe show a confirmation or a toast
+    } else if (suggestion.type === "script") {
       alert(`Executing Script: ${suggestion.title}\n\n${suggestion.content}`);
     }
   };
@@ -84,27 +137,39 @@ export default function Home() {
     if (!selectedTicketId) return;
 
     try {
-      await closeTicket(payload);
+      const response: CloseTicketResponse = await closeTicket(payload);
 
+      // Update ticket status locally
       setTickets((prev) =>
-        prev.map(t => t.id === selectedTicketId ? { ...t, status: 'Resolved' } : t)
+        prev.map((t) =>
+          t.id === selectedTicketId ? { ...t, status: "Resolved" as const } : t
+        )
       );
 
+      // Add system message about closure
       const systemMessage: Message = {
         id: `sys-${Date.now()}`,
-        ticketId: selectedTicketId,
-        sender: 'system',
-        content: `Ticket closed by agent. Resolution: ${payload.resolution_type}. Notes: ${payload.notes || 'None'}`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        ticket_id: selectedTicketId,
+        sender: "system",
+        content: `Ticket closed by agent. Resolution: ${payload.resolution_type}. Notes: ${payload.notes || "None"}`,
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
       };
 
       setMessages((prev) => ({
         ...prev,
         [selectedTicketId]: [...(prev[selectedTicketId] || []), systemMessage],
       }));
+
+      // Log knowledge article if generated
+      if (response.knowledge_article) {
+        console.log("Knowledge article generated:", response.knowledge_article);
+        // You could show a toast or modal here to display the article
+      }
     } catch (error) {
       console.error("Failed to close ticket:", error);
-      // Optional: Add toast notification here
     }
   };
 
