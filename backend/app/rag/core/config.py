@@ -1,8 +1,12 @@
 """Configuration management for RAG component."""
 
-import os
 from functools import lru_cache
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
+
+# .env lives at the project root (one level above backend/)
+_ENV_FILE = str(Path(__file__).resolve().parents[4] / ".env")
 
 
 class Settings(BaseSettings):
@@ -26,10 +30,21 @@ class Settings(BaseSettings):
     default_top_k: int = 10
     max_retrieval_candidates: int = 40
 
+    # Learning-adjusted ranking (post-rerank blending)
+    # final_score = rerank_score * (1 - blend_weight + blend_weight * learning_score)
+    # learning_score = confidence_weight * confidence
+    #               + usage_weight * usage_factor
+    #               + freshness_weight * freshness
+    confidence_blend_weight: float = 0.3
+    confidence_signal_weight: float = 0.6
+    usage_signal_weight: float = 0.3
+    freshness_signal_weight: float = 0.1
+    freshness_half_life_days: int = 365
+
     # Gap detection threshold
     gap_similarity_threshold: float = 0.75
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
+    model_config = {"env_file": _ENV_FILE, "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 @lru_cache

@@ -1,6 +1,7 @@
 """Node functions for SupportMind RAG agent."""
 
 import logging
+import math
 import uuid
 from datetime import datetime, timezone
 
@@ -82,8 +83,9 @@ def retrieve(state: RagState) -> dict:
                     module=row.get("module", ""),
                     tags=row.get("tags", ""),
                     similarity=row["similarity"],
-                    confidence=row.get("confidence", 0.0),
+                    confidence=row.get("confidence", 0.5),
                     usage_count=row.get("usage_count", 0),
+                    updated_at=row.get("updated_at"),
                 )
             else:
                 # Keep highest similarity across query variants
@@ -101,8 +103,50 @@ def retrieve(state: RagState) -> dict:
     return {"candidates": candidates}
 
 
+def _compute_learning_score(hit: CorpusHit) -> float:
+    """Compute a learning score from confidence, usage count, and freshness.
+
+    Returns a value in [0.0, 1.0] blending three signals:
+      - confidence (60%): direct from retrieval_corpus, reflects resolve/unhelpful feedback
+      - usage_factor (30%): log-scaled usage count, diminishing returns after ~31 uses
+      - freshness (10%): linear decay over 365 days, floor at 0.5
+    """
+    # Confidence: already [0.0, 1.0]
+    confidence = hit.confidence if hit.confidence is not None else 0.5
+
+    # Usage: log curve, capped at 1.0 (~31 uses)
+    usage_count = hit.usage_count if hit.usage_count is not None else 0
+    usage_factor = min(1.0, math.log2(1 + usage_count) / 5.0)
+
+    # Freshness: linear decay, floor at 0.5
+    freshness = 0.75  # default if no timestamp
+    if hit.updated_at:
+        try:
+            if isinstance(hit.updated_at, str):
+                updated = datetime.fromisoformat(hit.updated_at.replace("Z", "+00:00"))
+            else:
+                updated = hit.updated_at
+            days_old = (datetime.now(timezone.utc) - updated).days
+            half_life = settings.freshness_half_life_days
+            freshness = max(0.5, 1.0 - days_old / half_life)
+        except (ValueError, TypeError):
+            pass
+
+    w_conf = settings.confidence_signal_weight
+    w_usage = settings.usage_signal_weight
+    w_fresh = settings.freshness_signal_weight
+
+    return w_conf * confidence + w_usage * usage_factor + w_fresh * freshness
+
+
 def rerank(state: RagState) -> dict:
-    """Rerank candidates using Cohere to get top evidence."""
+    """Rerank candidates using Cohere, then apply learning-adjusted scoring.
+
+    After Cohere ranks by semantic relevance, each entry's score is adjusted by
+    a learning multiplier derived from confidence, usage count, and freshness:
+        final_score = rerank_score * (1 - w + w * learning_score)
+    where w = confidence_blend_weight (default 0.3).
+    """
     reranker = Reranker()
 
     if not state.candidates:
@@ -116,12 +160,21 @@ def rerank(state: RagState) -> dict:
         top_k=state.top_k,
     )
 
+    w = settings.confidence_blend_weight
+
     evidence: list[CorpusHit] = []
     for ranked_doc in ranked:
         original = state.candidates[ranked_doc.index]
+        rerank_score = ranked_doc.relevance_score
+        learning_score = _compute_learning_score(original)
+        blended = rerank_score * (1.0 - w + w * learning_score)
+
         evidence.append(
-            original.model_copy(update={"rerank_score": ranked_doc.relevance_score})
+            original.model_copy(update={"rerank_score": round(blended, 4)})
         )
+
+    # Re-sort by blended score (learning signals may reorder entries)
+    evidence.sort(key=lambda h: h.rerank_score or 0.0, reverse=True)
 
     return {"evidence": evidence}
 

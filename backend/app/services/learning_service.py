@@ -328,12 +328,12 @@ def _fetch_ticket_and_conversation(
     ticket_row = (
         sb.table("tickets").select("*").eq("ticket_number", ticket_number).maybe_single().execute()
     )
-    ticket_data = cast(dict[str, str | None], ticket_row.data or {})
+    ticket_data = cast(dict[str, str | None], getattr(ticket_row, "data", None) or {})
 
     conv_row = (
         sb.table("conversations").select("*").eq("ticket_number", ticket_number).maybe_single().execute()
     )
-    conv_data = cast(dict[str, str | None], conv_row.data or {})
+    conv_data = cast(dict[str, str | None], getattr(conv_row, "data", None) or {})
 
     return ticket_data, conv_data
 
@@ -460,20 +460,18 @@ async def _handle_contradiction(
 
     # Save draft as new KB article
     kb_article_id = f"KB-SYN-{uuid.uuid4().hex[:8].upper()}"
-    sb.table("knowledge_articles").insert(
-        {
-            "kb_article_id": kb_article_id,
-            "title": draft.title,
-            "body": draft.body,
-            "tags": draft.tags,
-            "module": draft.module,
-            "category": draft.category,
-            "created_at": now,
-            "updated_at": now,
-            "status": "Draft",
-            "source_type": "SYNTH_FROM_TICKET",
-        }
-    ).execute()
+    sb.table("knowledge_articles").insert({
+        "kb_article_id": kb_article_id,
+        "title": draft.title,
+        "body": draft.body,
+        "tags": draft.tags,
+        "module": draft.module,
+        "category": draft.category,
+        "created_at": now,
+        "updated_at": now,
+        "status": "Draft",
+        "source_type": "SYNTH_FROM_TICKET",
+    }).execute()
 
     # Create CONTRADICTION learning event
     event_id = f"LE-{uuid.uuid4().hex[:12]}"
@@ -530,20 +528,18 @@ async def _handle_new_knowledge(
     kb_article_id = f"KB-SYN-{uuid.uuid4().hex[:8].upper()}"
     now = datetime.now(UTC).isoformat()
 
-    sb.table("knowledge_articles").insert(
-        {
-            "kb_article_id": kb_article_id,
-            "title": draft.title,
-            "body": draft.body,
-            "tags": draft.tags,
-            "module": draft.module,
-            "category": draft.category,
-            "created_at": now,
-            "updated_at": now,
-            "status": "Draft",
-            "source_type": "SYNTH_FROM_TICKET",
-        }
-    ).execute()
+    sb.table("knowledge_articles").insert({
+        "kb_article_id": kb_article_id,
+        "title": draft.title,
+        "body": draft.body,
+        "tags": draft.tags,
+        "module": draft.module,
+        "category": draft.category,
+        "created_at": now,
+        "updated_at": now,
+        "status": "Draft",
+        "source_type": "SYNTH_FROM_TICKET",
+    }).execute()
 
     event_id = f"LE-{uuid.uuid4().hex[:12]}"
     gap_description = _build_gap_description(logs)
@@ -734,20 +730,18 @@ def _embed_kb_article(kb_article_id: str, draft: KBDraftFromGap) -> None:
     embedder = Embedder()
     embedding = embedder.embed(draft.body)
 
-    sb.table("retrieval_corpus").insert(
-        {
-            "source_type": "KB",
-            "source_id": kb_article_id,
-            "title": draft.title,
-            "content": draft.body,
-            "category": draft.category,
-            "module": draft.module,
-            "tags": draft.tags,
-            "embedding": embedding,
-            "confidence": 0.5,
-            "usage_count": 0,
-        }
-    ).execute()
+    sb.table("retrieval_corpus").insert({
+        "source_type": "KB",
+        "source_id": kb_article_id,
+        "title": draft.title,
+        "content": draft.body,
+        "category": draft.category,
+        "module": draft.module,
+        "tags": draft.tags,
+        "embedding": embedding,
+        "confidence": 0.5,
+        "usage_count": 0,
+    }).execute()
 
 
 def _apply_contradiction_approval(
