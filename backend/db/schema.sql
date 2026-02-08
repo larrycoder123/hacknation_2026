@@ -255,7 +255,6 @@ CREATE INDEX idx_kb_lineage_source       ON kb_lineage (source_type, source_id);
 CREATE INDEX idx_learning_status         ON learning_events (final_status);
 CREATE INDEX idx_learning_ticket         ON learning_events (trigger_ticket_number);
 CREATE INDEX idx_learning_kb             ON learning_events (proposed_kb_article_id);
-CREATE INDEX idx_learning_event_type     ON learning_events (event_type);
 
 -- Questions
 CREATE INDEX idx_questions_answer_type   ON questions (answer_type);
@@ -272,21 +271,15 @@ CREATE INDEX idx_script_placeholders_placeholder ON script_placeholders (placeho
 
 -- Retrieval corpus: b-tree
 CREATE INDEX idx_corpus_source_type      ON retrieval_corpus (source_type);
-CREATE INDEX idx_corpus_category         ON retrieval_corpus (category);
-
--- Retrieval corpus: GIN full-text search
-CREATE INDEX idx_corpus_content_fts ON retrieval_corpus
-    USING gin (to_tsvector('english', coalesce(content, '')));
-CREATE INDEX idx_corpus_title_fts ON retrieval_corpus
-    USING gin (to_tsvector('english', coalesce(title, '')));
+-- Note: no vector index — pgvector 0.8.0 caps HNSW/IVFFlat at 2000d,
+-- embeddings are 3072d. Exact cosine scan (~71ms for 4k rows) is acceptable.
+-- Re-evaluate when corpus exceeds ~50k rows or pgvector lifts the limit.
 
 -- Retrieval log
 CREATE INDEX idx_retrieval_log_ticket       ON retrieval_log (ticket_number);
 CREATE INDEX idx_retrieval_log_conversation ON retrieval_log (conversation_id);
 CREATE INDEX idx_retrieval_log_outcome      ON retrieval_log (outcome);
 CREATE INDEX idx_retrieval_log_source       ON retrieval_log (source_type, source_id);
-CREATE INDEX idx_retrieval_log_created      ON retrieval_log (created_at DESC);
-
 -- RAG execution log
 CREATE INDEX idx_exec_log_ticket        ON rag_execution_log (ticket_number);
 CREATE INDEX idx_exec_log_conversation  ON rag_execution_log (conversation_id);
@@ -296,13 +289,8 @@ CREATE INDEX idx_exec_log_created       ON rag_execution_log (created_at DESC);
 -- Retrieval log -> execution log link
 CREATE INDEX idx_retrieval_log_execution ON retrieval_log (execution_id);
 
--- Full-text search on source tables
-CREATE INDEX idx_conversations_transcript_fts ON conversations
-    USING gin (to_tsvector('english', coalesce(transcript, '')));
-CREATE INDEX idx_tickets_description_fts ON tickets
-    USING gin (to_tsvector('english', coalesce(description, '')));
-CREATE INDEX idx_tickets_resolution_fts ON tickets
-    USING gin (to_tsvector('english', coalesce(resolution, '')));
+-- Note: FTS indexes on conversations/tickets removed — app uses vector
+-- similarity search via retrieval_corpus, not SQL full-text search.
 
 -- ═══════════════════════════════════════════════════════════════════════
 -- SEED DATA
@@ -414,7 +402,7 @@ BEGIN
     FROM retrieval_corpus rc
     WHERE
         (p_source_types IS NULL OR rc.source_type = ANY(p_source_types))
-        AND (p_category IS NULL OR rc.category ILIKE '%' || p_category || '%')
+        AND (p_category IS NULL OR rc.category = p_category)
         AND (1 - (rc.embedding <=> query_embedding)) >= p_similarity_threshold
     ORDER BY rc.embedding <=> query_embedding ASC
     LIMIT p_top_k;
