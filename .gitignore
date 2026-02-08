@@ -49,4 +49,4 @@ out/
 *.xlsx
 
 
-prompts/*
+.claude

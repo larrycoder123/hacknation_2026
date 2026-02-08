@@ -3,7 +3,10 @@ import {
     CloseConversationPayload,
     CloseConversationResponse,
     Conversation,
-    Message
+    Message,
+    LearningEventListResponse,
+    ReviewDecisionPayload,
+    LearningEventDetail,
 } from '../types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -68,5 +71,46 @@ export async function closeConversation(payload: CloseConversationPayload): Prom
         throw new Error('Failed to close conversation');
     }
 
+    return response.json();
+}
+
+/**
+ * Fetch learning events with optional filters.
+ */
+export async function fetchLearningEvents(params?: {
+    status?: string;
+    event_type?: string;
+    limit?: number;
+    offset?: number;
+}): Promise<LearningEventListResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.event_type) searchParams.set('event_type', params.event_type);
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.offset) searchParams.set('offset', String(params.offset));
+
+    const qs = searchParams.toString();
+    const response = await fetch(`${API_BASE_URL}/learning-events${qs ? `?${qs}` : ''}`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch learning events');
+    }
+    return response.json();
+}
+
+/**
+ * Approve or reject a learning event.
+ */
+export async function reviewLearningEvent(
+    eventId: string,
+    payload: ReviewDecisionPayload,
+): Promise<LearningEventDetail> {
+    const response = await fetch(`${API_BASE_URL}/learning-events/${eventId}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to review learning event');
+    }
     return response.json();
 }
