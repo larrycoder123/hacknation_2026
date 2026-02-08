@@ -14,6 +14,7 @@ import {
     fetchSuggestedActions,
     closeConversation
 } from "@/app/api/client";
+import { fillSuggestionTemplates } from "@/lib/templateFiller";
 
 export function useConversationState() {
     const [conversations, setConversations] = useState<ConversationDisplay[]>([]);
@@ -98,14 +99,22 @@ export function useConversationState() {
         setIsSuggestionsLoading(true);
         try {
             const actions = await fetchSuggestedActions(selectedConversationId);
-            setSuggestions(actions);
+            // Find current conversation and messages for template context
+            const conversation = conversations.find(c => c.id === selectedConversationId) || null;
+            const conversationMessages = messages[selectedConversationId] || [];
+            // Fill in template placeholders with actual context values
+            const filledActions = fillSuggestionTemplates(actions, {
+                conversation,
+                messages: conversationMessages,
+            });
+            setSuggestions(filledActions);
         } catch (err) {
             console.error("Failed to fetch suggestions:", err);
             setError("Failed to fetch suggestions.");
         } finally {
             setIsSuggestionsLoading(false);
         }
-    }, [selectedConversationId]);
+    }, [selectedConversationId, conversations, messages]);
 
     const closeActiveConversation = useCallback(async (payload: CloseConversationPayload) => {
         if (!selectedConversationId) return;
