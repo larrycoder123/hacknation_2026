@@ -202,13 +202,14 @@ export default function Home() {
   };
 
   return (
-    <main className="flex h-full w-full bg-background text-foreground overflow-hidden font-sans antialiased selection:bg-primary/30 relative">
+    <main className="flex h-screen w-full bg-secondary/30 text-foreground overflow-hidden font-sans antialiased selection:bg-primary/20 relative p-4 gap-4 md:p-6 md:gap-6">
       {error && (
-        <div className="absolute top-0 left-0 right-0 z-50 bg-red-500/90 text-white px-4 py-2 text-sm flex items-center justify-between">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-destructive/90 text-white px-4 py-2 text-sm flex items-center gap-4 rounded-full shadow-lg backdrop-blur-md animate-in fade-in slide-in-from-top-4">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="ml-4 font-bold hover:opacity-80">X</button>
+          <button onClick={() => setError(null)} className="font-bold hover:opacity-80">X</button>
         </div>
       )}
+
       <ConversationQueue
         conversations={conversations}
         selectedConversationId={selectedConversationId}

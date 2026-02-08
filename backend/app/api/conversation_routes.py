@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Source type to SuggestedAction type mapping
-_SOURCE_TYPE_MAP = {"SCRIPT": "script", "KB": "response", "TICKET_RESOLUTION": "action"}
+_SOURCE_TYPE_MAP = {"SCRIPT": "script",
+                    "KB": "response", "TICKET_RESOLUTION": "action"}
 
 
 # ── Conversation endpoints ───────────────────────────────────────────
@@ -91,19 +92,18 @@ async def get_suggested_actions(conversation_id: str = Path(min_length=1, max_le
                 type=action_type,
                 confidence_score=round(score, 2),
                 title=hit.title or hit.source_id,
-                description=hit.content[:200] + "..." if len(hit.content) > 200 else hit.content,
+                description=hit.content[:200] +
+                "..." if len(hit.content) > 200 else hit.content,
                 content=hit.content,
                 source=f"{hit.source_type}: {hit.source_id}",
             ))
-
+        print(actions)
         return actions if actions else MOCK_SUGGESTIONS
 
     except Exception:
-        logger.exception("RAG failed for conversation %s, falling back to mock", conversation_id)
+        logger.exception(
+            "RAG failed for conversation %s, falling back to mock", conversation_id)
         return MOCK_SUGGESTIONS
-
-
-# ── Close conversation ───────────────────────────────────────────────
 
 
 @router.post("/conversations/{conversation_id}/close", response_model=CloseConversationResponse)
@@ -137,7 +137,8 @@ async def close_conversation(
                 resolution_notes=payload.notes,
             )
 
-            logger.info("Generated ticket for conversation %s", conversation_id)
+            logger.info("Generated ticket for conversation %s",
+                        conversation_id)
 
             # Persist to DB so the self-learning pipeline can pick it up
             try:
@@ -149,14 +150,18 @@ async def close_conversation(
                 )
                 ticket.ticket_number = tn
             except Exception:
-                logger.exception("Failed to save ticket to DB for conversation %s", conversation_id)
-                warnings.append("Ticket was generated but could not be saved to the database.")
+                logger.exception(
+                    "Failed to save ticket to DB for conversation %s", conversation_id)
+                warnings.append(
+                    "Ticket was generated but could not be saved to the database.")
 
         except Exception:
-            logger.exception("Failed to generate ticket for conversation %s", conversation_id)
+            logger.exception(
+                "Failed to generate ticket for conversation %s", conversation_id)
 
     # Update conversation status in mock data
-    MOCK_CONVERSATIONS[conversation_id] = conversation.model_copy(update={"status": "Resolved"})
+    MOCK_CONVERSATIONS[conversation_id] = conversation.model_copy(
+        update={"status": "Resolved"})
 
     # Run self-learning pipeline (synchronous for demo)
     # Only run if ticket was saved to DB (ticket_number assigned)
@@ -175,7 +180,8 @@ async def close_conversation(
                 learning_result.gap_classification,
             )
         except Exception:
-            logger.exception("Learning pipeline failed for conversation %s", conversation_id)
+            logger.exception(
+                "Learning pipeline failed for conversation %s", conversation_id)
 
     return CloseConversationResponse(
         status="success",
