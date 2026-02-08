@@ -43,7 +43,7 @@ export default function ConversationQueue({ conversations, selectedConversationI
                         <div className="bg-primary/10 p-1 rounded-md border border-primary/20">
                             <Zap className="h-3.5 w-3.5 text-primary fill-primary/20" />
                         </div>
-                        <h2 className="text-sm font-semibold text-foreground tracking-tight">Pulse Inbox</h2>
+                        <h2 className="text-sm font-semibold text-foreground tracking-tight">Inbox</h2>
                     </div>
                     <div className="text-xs text-muted-foreground font-medium bg-secondary px-2 py-0.5 rounded-md tabular-nums">
                         {filteredConversations.length}

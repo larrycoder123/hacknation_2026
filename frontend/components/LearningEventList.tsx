@@ -86,18 +86,18 @@ export default function LearningEventList({
                   : "hover:bg-muted/50 hover:border-border/20 text-muted-foreground hover:text-foreground"
               )}
             >
-              <div className="flex justify-end mb-1.5">
-                <span className="text-[10px] font-medium opacity-50 tabular-nums">
-                  {formatRelativeTime(event.event_timestamp)}
-                </span>
-              </div>
               <div className={cn(
-                "font-medium text-sm truncate mb-0.5 tracking-tight",
+                "font-medium text-sm truncate mb-1 tracking-tight",
                 selectedEventId === event.event_id ? "text-foreground" : "text-foreground/80 group-hover:text-foreground"
               )}>
                 {event.draft_summary}
               </div>
-              <div className="text-xs truncate opacity-70">{event.trigger_ticket_number}</div>
+              <div className="flex justify-between items-center text-xs opacity-70">
+                <span className="truncate">{event.trigger_ticket_number}</span>
+                <span className="text-[10px] font-medium opacity-70 tabular-nums flex-shrink-0 ml-2">
+                  {formatRelativeTime(event.event_timestamp)}
+                </span>
+              </div>
             </button>
           ))
         )}

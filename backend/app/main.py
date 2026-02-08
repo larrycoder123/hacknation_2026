@@ -4,10 +4,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api import conversation_routes, learning_routes
+from .core.config import get_settings
 
 app = FastAPI(title="SupportMind Backend")
 
-origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")]
+settings = get_settings()
+origins = [o.strip() for o in settings.cors_origins.split(",")]
 
 app.add_middleware(
     CORSMiddleware,
