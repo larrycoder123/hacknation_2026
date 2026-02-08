@@ -49,6 +49,15 @@ MOCK_CONVERSATIONS: dict[str, Conversation] = {
         time_ago="1d",
         last_message="Found it, thanks!",
     ),
+    "1029": Conversation(
+        id="1029",
+        customer_name="Marcus Chen",
+        subject="Facilities tile missing from home page",
+        priority="Medium",
+        status="Open",
+        time_ago="3d",
+        last_message="Cache clear fixed it, thanks!",
+    ),
 }
 
 MOCK_MESSAGES: dict[str, list[Message]] = {
@@ -174,4 +183,28 @@ MOCK_MESSAGES: dict[str, list[Message]] = {
             timestamp="Yesterday 2:10 PM",
         ),
     ],
+    "1029": [
+        Message(
+            id="m17",
+            conversation_id="1029",
+            sender="customer",
+            content="Hi, I cannot find the Facilities tile on my Unified Platform home page. I have PropertySuite access but Facilities is not showing up.",
+            timestamp="Monday 9:15 AM",
+        ),
+        Message(
+            id="m18",
+            conversation_id="1029",
+            sender="agent",
+            content="Hi Marcus! The Facilities tile is actually built into PropertySuite - it's not a separate tile. Since you have PropertySuite access, Facilities should be available automatically inside the PropertySuite menu. No additional roles or permissions are needed. Try clearing your browser cache and refreshing - that usually fixes this display issue.",
+            timestamp="Monday 9:20 AM",
+        ),
+        Message(
+            id="m19",
+            conversation_id="1029",
+            sender="customer",
+            content="Cache clear fixed it, thanks!",
+            timestamp="Monday 9:35 AM",
+        ),
+    ],
 }
+
