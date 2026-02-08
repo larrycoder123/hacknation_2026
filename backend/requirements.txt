@@ -3,4 +3,10 @@ uvicorn
 pydantic
 pydantic-settings
 python-dotenv
+openai
 langchain-openai
+langgraph
+cohere
+supabase
+postgrest
+pytest

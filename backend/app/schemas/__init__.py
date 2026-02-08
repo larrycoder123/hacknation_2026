@@ -1,7 +1,13 @@
 """Schemas module - Pydantic models for API request/response validation."""
 
 from .actions import SuggestedAction
-from .knowledge import KnowledgeArticle, KnowledgeArticleCreateRequest
+from .conversations import (
+    CloseConversationPayload,
+    CloseConversationResponse,
+    Conversation,
+    ConversationStatus,
+    Priority,
+)
 from .learning import (
     ConfidenceUpdate,
     KBDraftFromGap,
@@ -12,20 +18,17 @@ from .learning import (
     SelfLearningResult,
 )
 from .messages import Message, Sender
-from .tickets import (
-    CloseTicketPayload,
-    CloseTicketResponse,
-    Priority,
-    Ticket,
-    TicketStatus,
-)
+from .tickets import Ticket, TicketCreateRequest
 
 __all__ = [
     # Actions
     "SuggestedAction",
-    # Knowledge
-    "KnowledgeArticle",
-    "KnowledgeArticleCreateRequest",
+    # Conversations
+    "Conversation",
+    "CloseConversationPayload",
+    "CloseConversationResponse",
+    "ConversationStatus",
+    "Priority",
     # Learning
     "ConfidenceUpdate",
     "KBDraftFromGap",
@@ -39,8 +42,5 @@ __all__ = [
     "Sender",
     # Tickets
     "Ticket",
-    "CloseTicketPayload",
-    "CloseTicketResponse",
-    "Priority",
-    "TicketStatus",
+    "TicketCreateRequest",
 ]

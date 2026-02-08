@@ -1,7 +1,5 @@
 """Services module - business logic and LLM integration."""
 
-from . import knowledge_service, learning_service
-from .knowledge_service import generate_knowledge_article
+from . import embedding_service, learning_service, ticket_service
 
-__all__ = ["knowledge_service", "learning_service",
-           "generate_knowledge_article"]
+__all__ = ["embedding_service", "learning_service", "ticket_service"]
