@@ -215,8 +215,8 @@ def _write_execution_log(
         tokens_input = 0
         tokens_output = 0
         if tokens:
-            tokens_input = getattr(tokens, "input_tokens", 0) or 0
-            tokens_output = getattr(tokens, "output_tokens", 0) or 0
+            tokens_input = getattr(tokens, "input", 0) or 0
+            tokens_output = getattr(tokens, "output", 0) or 0
 
         top_similarity = evidence[0].similarity if evidence else None
         top_rerank = evidence[0].rerank_score if evidence else None
