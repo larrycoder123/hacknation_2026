@@ -20,6 +20,14 @@ interface MarkdownRendererProps {
  * - Blockquotes
  */
 export default function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
+    // Fix markdown list formatting:
+    // 1. Merge "1.\n**Text**" → "1. **Text**" (number on its own line)
+    // 2. Ensure blank lines before list starts so markdown parses them correctly
+    const normalized = content
+        .replace(/(\d+)\.\s*\n+\s*(\*\*)/g, '$1. $2')
+        .replace(/([^\n])\n(\d+\.\s)/g, '$1\n\n$2')
+        .replace(/([^\n])\n([-*]\s)/g, '$1\n\n$2');
+
     return (
         <div className={cn("prose prose-sm prose-invert max-w-none", className)}>
             <ReactMarkdown
@@ -92,7 +100,7 @@ export default function MarkdownRenderer({ content, className }: MarkdownRendere
                     hr: () => <hr className="border-border/50 my-3" />,
                 }}
             >
-                {content}
+                {normalized}
             </ReactMarkdown>
         </div>
     );

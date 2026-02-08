@@ -110,14 +110,20 @@ export default function LearningEventDetail({
         {event.proposed_article && (
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Proposed KB Article</h3>
-            <div className="bg-muted/30 border border-border/50 rounded-md p-3 space-y-2">
+            <div className="bg-muted/30 border border-border/50 rounded-md p-4 space-y-3">
               <h4 className="font-semibold text-sm">{event.proposed_article.title}</h4>
-              <ExpandableText
-                content={event.proposed_article.body}
-                maxLength={400}
-                isMarkdown={true}
-              />
-              {event.proposed_article.tags && <p className="text-xs text-muted-foreground">Tags: {event.proposed_article.tags}</p>}
+              <div className="text-sm leading-relaxed prose prose-invert prose-sm max-w-none">
+                <MarkdownRenderer content={event.proposed_article.body} />
+              </div>
+              {event.proposed_article.tags && (
+                <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border/30">
+                  {event.proposed_article.tags.split(',').map((tag) => (
+                    <span key={tag.trim()} className="text-[10px] px-1.5 py-0.5 bg-muted/50 border border-border/50 rounded text-muted-foreground">
+                      {tag.trim()}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

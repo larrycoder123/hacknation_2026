@@ -28,6 +28,7 @@ export function useConversationState() {
 
     const [error, setError] = useState<string | null>(null);
     const [inputMessage, setInputMessage] = useState("");
+    const [isCustomerTyping, setIsCustomerTyping] = useState(false);
     const autoRepliedRef = useRef<Set<string>>(new Set());
 
     // Fetch conversations on mount
@@ -94,11 +95,13 @@ export function useConversationState() {
             [selectedConversationId]: [...(prev[selectedConversationId] || []), newMessage],
         }));
 
-        // Demo auto-reply: customer responds once after agent sends a message
+        // Demo auto-reply: typing indicator then customer responds once
         const convId = selectedConversationId;
         if (!autoRepliedRef.current.has(convId)) {
             autoRepliedRef.current.add(convId);
+            setTimeout(() => setIsCustomerTyping(true), 1000);
             setTimeout(() => {
+                setIsCustomerTyping(false);
                 const reply: Message = {
                     id: `m-auto-${Date.now()}`,
                     conversation_id: convId,
@@ -113,7 +116,7 @@ export function useConversationState() {
                     ...prev,
                     [convId]: [...(prev[convId] || []), reply],
                 }));
-            }, 2500);
+            }, 3500);
         }
     }, [selectedConversationId]);
 
@@ -218,6 +221,7 @@ export function useConversationState() {
         isConversationsLoading,
         isMessagesLoading,
         isSuggestionsLoading,
+        isCustomerTyping,
         error,
         setError,
         inputMessage,

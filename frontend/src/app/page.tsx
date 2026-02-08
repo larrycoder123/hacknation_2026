@@ -16,6 +16,7 @@ export default function Home() {
     currentMessages,
     suggestions,
     isSuggestionsLoading,
+    isCustomerTyping,
     error,
     setError,
     inputMessage,
@@ -56,6 +57,7 @@ export default function Home() {
         onCloseConversation={() => selectedConversationId && setIsCloseModalOpen(true)}
         inputMessage={inputMessage}
         onInputChange={setInputMessage}
+        isCustomerTyping={isCustomerTyping}
       />
 
       <AIAssistant

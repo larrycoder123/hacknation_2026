@@ -17,6 +17,7 @@ interface ConversationDetailProps {
     onCloseConversation: () => void;
     inputMessage?: string;
     onInputChange?: (value: string) => void;
+    isCustomerTyping?: boolean;
 }
 
 /**
@@ -25,7 +26,7 @@ interface ConversationDetailProps {
  * Displays the message history of the selected conversation and allows sending new messages.
  * Handles auto-scrolling to the latest message.
  */
-export default function ConversationDetail({ conversation, messages, onSendMessage, onCloseConversation, inputMessage, onInputChange }: ConversationDetailProps) {
+export default function ConversationDetail({ conversation, messages, onSendMessage, onCloseConversation, inputMessage, onInputChange, isCustomerTyping }: ConversationDetailProps) {
     const [internalInput, setInternalInput] = useState('');
     const inputValue = inputMessage !== undefined ? inputMessage : internalInput;
     const setInputValue = onInputChange || setInternalInput;
@@ -140,6 +141,22 @@ export default function ConversationDetail({ conversation, messages, onSendMessa
                         </div>
                     );
                 })}
+                {isCustomerTyping && (
+                    <div className="flex gap-3 max-w-3xl">
+                        <div className="flex flex-col gap-1 min-w-0 items-start">
+                            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                                {conversation.customerName}
+                            </span>
+                            <div className="rounded-lg px-4 py-2.5 bg-zinc-900 border border-border">
+                                <div className="flex gap-1 items-center">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 <div ref={messagesEndRef} />
             </div>
 
