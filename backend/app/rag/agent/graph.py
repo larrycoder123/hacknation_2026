@@ -6,6 +6,8 @@ Two graphs:
 """
 
 import logging
+import time
+import uuid
 
 from langgraph.graph import END, StateGraph
 
@@ -143,24 +145,39 @@ def run_rag(
 
 
 # ---------------------------------------------------------------------------
-# Gap Detection Graph
+# Gap Detection Graph (with execution logging)
 # ---------------------------------------------------------------------------
 
 
-def create_gap_detection_graph() -> StateGraph:
-    """Build the gap detection workflow graph.
+def _timed_node(node_fn, node_latencies: dict):
+    """Wrap a node function to record its execution time."""
+    name = node_fn.__name__
+
+    def wrapper(state):
+        start = time.perf_counter()
+        result = node_fn(state)
+        elapsed_ms = int((time.perf_counter() - start) * 1000)
+        node_latencies[name] = elapsed_ms
+        return result
+
+    wrapper.__name__ = name
+    return wrapper
+
+
+def create_gap_detection_graph(node_latencies: dict) -> StateGraph:
+    """Build the gap detection workflow graph with per-node timing.
 
     Flow: plan_query -> retrieve -> rerank -> enrich_sources
           -> classify_knowledge -> log_retrieval -> END
     """
     workflow = StateGraph(RagState)
 
-    workflow.add_node("plan_query", nodes.plan_query)
-    workflow.add_node("retrieve", nodes.retrieve)
-    workflow.add_node("rerank", nodes.rerank)
-    workflow.add_node("enrich_sources", nodes.enrich_sources)
-    workflow.add_node("classify_knowledge", nodes.classify_knowledge)
-    workflow.add_node("log_retrieval", nodes.log_retrieval)
+    workflow.add_node("plan_query", _timed_node(nodes.plan_query, node_latencies))
+    workflow.add_node("retrieve", _timed_node(nodes.retrieve, node_latencies))
+    workflow.add_node("rerank", _timed_node(nodes.rerank, node_latencies))
+    workflow.add_node("enrich_sources", _timed_node(nodes.enrich_sources, node_latencies))
+    workflow.add_node("classify_knowledge", _timed_node(nodes.classify_knowledge, node_latencies))
+    workflow.add_node("log_retrieval", _timed_node(nodes.log_retrieval, node_latencies))
 
     workflow.set_entry_point("plan_query")
 
@@ -174,11 +191,74 @@ def create_gap_detection_graph() -> StateGraph:
     return workflow
 
 
+def _write_execution_log(
+    execution_id: str,
+    graph_type: str,
+    input_data: GapDetectionInput,
+    query: str,
+    total_latency_ms: int,
+    node_latencies: dict,
+    final_state: dict,
+    decision: KnowledgeDecision | None,
+    status: str,
+    error_message: str | None = None,
+) -> None:
+    """Write a row to rag_execution_log after pipeline completion."""
+    try:
+        from app.rag.core import get_supabase_client
+
+        client = get_supabase_client()
+
+        evidence = final_state.get("evidence", [])
+        tokens = final_state.get("tokens")
+
+        tokens_input = 0
+        tokens_output = 0
+        if tokens:
+            tokens_input = getattr(tokens, "input_tokens", 0) or 0
+            tokens_output = getattr(tokens, "output_tokens", 0) or 0
+
+        top_similarity = evidence[0].similarity if evidence else None
+        top_rerank = evidence[0].rerank_score if evidence else None
+
+        row = {
+            "execution_id": execution_id,
+            "graph_type": graph_type,
+            "conversation_id": input_data.conversation_id or None,
+            "ticket_number": input_data.ticket_number or None,
+            "query": query[:1000],
+            "total_latency_ms": total_latency_ms,
+            "node_latencies": node_latencies,
+            "tokens_input": tokens_input,
+            "tokens_output": tokens_output,
+            "evidence_count": len(evidence),
+            "top_similarity": round(top_similarity, 4) if top_similarity else None,
+            "top_rerank_score": round(top_rerank, 4) if top_rerank else None,
+            "classification": decision.decision if decision else None,
+            "status": status,
+            "error_message": error_message,
+        }
+
+        client.table("rag_execution_log").insert(row).execute()
+        logger.info(
+            "Execution log: %s ticket=%s latency=%dms tokens=%d+%d classification=%s",
+            execution_id,
+            input_data.ticket_number,
+            total_latency_ms,
+            tokens_input,
+            tokens_output,
+            decision.decision if decision else "N/A",
+        )
+    except Exception:
+        logger.exception("Failed to write execution log %s", execution_id)
+
+
 def run_gap_detection(input_data: GapDetectionInput) -> GapDetectionResult:
     """Run gap detection to classify a resolved ticket's knowledge.
 
     Constructs a query from ticket fields, searches the corpus, and classifies
-    as SAME_KNOWLEDGE, CONTRADICTS, or NEW_KNOWLEDGE.
+    as SAME_KNOWLEDGE, CONTRADICTS, or NEW_KNOWLEDGE. Logs pipeline execution
+    metrics to rag_execution_log.
 
     Args:
         input_data: Resolved ticket details
@@ -186,6 +266,10 @@ def run_gap_detection(input_data: GapDetectionInput) -> GapDetectionResult:
     Returns:
         GapDetectionResult with decision, retrieved entries, and enriched sources
     """
+    execution_id = f"EXEC-{uuid.uuid4().hex[:12]}"
+    node_latencies: dict[str, int] = {}
+    pipeline_start = time.perf_counter()
+
     # Construct query from ticket fields
     parts: list[str] = []
     if input_data.subject:
@@ -198,7 +282,7 @@ def run_gap_detection(input_data: GapDetectionInput) -> GapDetectionResult:
         parts.append(f"Resolution: {input_data.resolution[:200]}")
     query = ". ".join(parts) if parts else input_data.description[:300]
 
-    workflow = create_gap_detection_graph()
+    workflow = create_gap_detection_graph(node_latencies)
     app = workflow.compile()
 
     rag_input = RagInput(
@@ -212,14 +296,28 @@ def run_gap_detection(input_data: GapDetectionInput) -> GapDetectionResult:
         input=rag_input,
         top_k=10,
         retrieval_log_summary=input_data.retrieval_log_summary,
+        execution_id=execution_id,
     )
 
     try:
         final_state = app.invoke(initial_state)
+        total_ms = int((time.perf_counter() - pipeline_start) * 1000)
 
         # Parse the decision from the answer field (stored as JSON by classify_knowledge)
         answer_json = final_state.get("answer", "{}")
         decision = KnowledgeDecision.model_validate_json(answer_json)
+
+        _write_execution_log(
+            execution_id=execution_id,
+            graph_type="GAP_DETECTION",
+            input_data=input_data,
+            query=query,
+            total_latency_ms=total_ms,
+            node_latencies=node_latencies,
+            final_state=final_state,
+            decision=decision,
+            status="success",
+        )
 
         return GapDetectionResult(
             decision=decision,
@@ -229,10 +327,24 @@ def run_gap_detection(input_data: GapDetectionInput) -> GapDetectionResult:
         )
 
     except Exception as e:
+        total_ms = int((time.perf_counter() - pipeline_start) * 1000)
         logger.exception(
             "Gap detection failed for ticket: %s", input_data.ticket_number
         )
         from app.rag.models.corpus import KnowledgeDecisionType
+
+        _write_execution_log(
+            execution_id=execution_id,
+            graph_type="GAP_DETECTION",
+            input_data=input_data,
+            query=query,
+            total_latency_ms=total_ms,
+            node_latencies=node_latencies,
+            final_state={},
+            decision=None,
+            status="error",
+            error_message=str(e)[:500],
+        )
 
         return GapDetectionResult(
             decision=KnowledgeDecision(
