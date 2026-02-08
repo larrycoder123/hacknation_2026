@@ -15,8 +15,8 @@ MOCK_SUGGESTIONS = [
         "type": "response",
         "confidence_score": 0.85,
         "title": "Explain Compliance Delay",
-        "description": "Standard apology template for compliance delays.",
-        "content": 'Knowledge Base Article: Compliance Delays\\n\\nIssue: Customers may experience delays in property certification syncing due to high load on the verification server. This typically manifests as a 505 error on the certifications page.\\n\\nResolution Steps:\\n1. Verify the property ID.\\n2. Check the sync status in the admin panel.\\n3. If \'Pending\', advise the customer to wait 2-4 hours.\\n4. If \'Error\', run the \'Fix Certifications Script\'.\\n\\nCustomer Communication Template:\\n\\"I apologize for the inconvenience. It appears our certification verification system is currently under heavy load, which is causing a delay in syncing your property details. This usually resolves within 2-4 hours. However, since you are seeing an error, I can manually trigger a refresh for you. Would you like me to do that now?\\"',
+        "description": "Knowledge base article explaining compliance delay causes and resolution steps.",
+        "content": 'Knowledge Base Article: Compliance Delays\\n\\nIssue: Customers may experience delays in property certification syncing due to high load on the verification server. This typically manifests as a 505 error on the certifications page.\\n\\nResolution Steps:\\n1. Verify the property ID.\\n2. Check the sync status in the admin panel.\\n3. If \'Pending\', advise the customer to wait 2-4 hours.\\n4. If \'Error\', run the \'Fix Certifications Script\'.',
         "source": "Knowledge Base Art. 12",
     },
 ]

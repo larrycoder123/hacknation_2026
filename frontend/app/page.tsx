@@ -120,19 +120,7 @@ export default function Home() {
   };
 
   const handleApplySuggestion = (suggestion: SuggestedAction) => {
-    if (suggestion.type === "response") {
-      // Extract customer communication template or format content
-      let summary = suggestion.content;
-      if (suggestion.content.includes("Customer Communication Template:")) {
-        summary = suggestion.content
-          .split("Customer Communication Template:")[1]
-          .replace(/"/g, "")
-          .trim();
-      } else {
-        summary = `Based on the article "${suggestion.title}", here is a summary:\n\n${suggestion.description}`;
-      }
-      setInputMessage(summary);
-    } else if (suggestion.type === "script") {
+    if (suggestion.type === "script") {
       alert(`Executing Script: ${suggestion.title}\n\n${suggestion.content}`);
     }
   };

@@ -62,7 +62,6 @@ export interface Ticket {
   related_error_codes?: string[];
   steps_to_reproduce?: string;
   resolution_steps?: string[];
-  customer_communication_template?: string;
   internal_notes?: string;
 }
 

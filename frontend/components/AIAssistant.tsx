@@ -2,7 +2,7 @@ import { SuggestedAction, ActionType } from '../app/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Sparkles, Terminal, MessageSquare, AlertCircle, RefreshCw, Check, ArrowRight } from 'lucide-react';
+import { Sparkles, Terminal, MessageSquare, AlertCircle, RefreshCw, Check } from 'lucide-react';
 
 interface AIAssistantProps {
     suggestions: SuggestedAction[];
@@ -133,7 +133,7 @@ export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, 
                                                 {suggestion.source}
                                             </span>
 
-                                            {suggestion.type === 'script' ? (
+                                            {suggestion.type === 'script' && (
                                                 <Button
                                                     onClick={() => onApplySuggestion(suggestion)}
                                                     size="sm"
@@ -141,16 +141,6 @@ export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, 
                                                 >
                                                     <Terminal className="w-3 h-3" />
                                                     Run Script
-                                                </Button>
-                                            ) : (
-                                                <Button
-                                                    onClick={() => onApplySuggestion(suggestion)}
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-7 text-sm text-primary hover:text-primary/90 hover:bg-primary/10 gap-1.5 ml-auto"
-                                                >
-                                                    Use This
-                                                    <ArrowRight className="w-3 h-3" />
                                                 </Button>
                                             )}
                                         </div>
