@@ -100,6 +100,51 @@ class ReviewDecision(BaseModel):
     reason: str | None = None
 
 
+# ── KB article summary (for review UI) ───────────────────────────────
+
+
+class KBArticleSummary(BaseModel):
+    """Subset of knowledge_articles for display in the review UI."""
+
+    kb_article_id: str
+    title: str
+    body: str
+    tags: str | None = None
+    module: str | None = None
+    category: str | None = None
+    status: str | None = None
+
+
+# ── Learning event detail (with joined data) ─────────────────────────
+
+
+class LearningEventDetail(BaseModel):
+    """Learning event with joined KB article and ticket data for the review page."""
+
+    event_id: str
+    trigger_ticket_number: str
+    detected_gap: str
+    event_type: EventType = "GAP"
+    proposed_kb_article_id: str | None = None
+    flagged_kb_article_id: str | None = None
+    draft_summary: str
+    final_status: Literal["Approved", "Rejected"] | None = None
+    reviewer_role: str | None = None
+    event_timestamp: datetime | None = None
+    proposed_article: KBArticleSummary | None = None
+    flagged_article: KBArticleSummary | None = None
+    trigger_ticket_subject: str | None = None
+    trigger_ticket_description: str | None = None
+    trigger_ticket_resolution: str | None = None
+
+
+class LearningEventListResponse(BaseModel):
+    """Paginated list of learning events."""
+
+    events: list[LearningEventDetail]
+    total_count: int
+
+
 # ── Aggregate result ──────────────────────────────────────────────────
 
 

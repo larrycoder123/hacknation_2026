@@ -95,6 +95,52 @@ export interface CloseConversationResponse {
   learning_result?: SelfLearningResult;
 }
 
+// ── Learning review types ─────────────────────────────────────────
+
+export type EventType = 'GAP' | 'CONTRADICTION' | 'CONFIRMED';
+export type ReviewStatus = 'pending' | 'approved' | 'rejected';
+export type ReviewerRole = 'Tier 3 Support' | 'Support Ops Review';
+export type FinalStatus = 'Approved' | 'Rejected';
+
+export interface KBArticleSummary {
+  kb_article_id: string;
+  title: string;
+  body: string;
+  tags?: string;
+  module?: string;
+  category?: string;
+  status?: string;
+}
+
+export interface LearningEventDetail {
+  event_id: string;
+  trigger_ticket_number: string;
+  detected_gap: string;
+  event_type: EventType;
+  proposed_kb_article_id?: string;
+  flagged_kb_article_id?: string;
+  draft_summary: string;
+  final_status?: FinalStatus;
+  reviewer_role?: string;
+  event_timestamp?: string;
+  proposed_article?: KBArticleSummary;
+  flagged_article?: KBArticleSummary;
+  trigger_ticket_subject?: string;
+  trigger_ticket_description?: string;
+  trigger_ticket_resolution?: string;
+}
+
+export interface LearningEventListResponse {
+  events: LearningEventDetail[];
+  total_count: number;
+}
+
+export interface ReviewDecisionPayload {
+  decision: FinalStatus;
+  reviewer_role: ReviewerRole;
+  reason?: string;
+}
+
 // Utility function to convert backend conversation to display format
 export function toConversationDisplay(conversation: Conversation): ConversationDisplay {
   return {
