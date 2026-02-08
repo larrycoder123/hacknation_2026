@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import endpoints, learning_endpoints
+from .api import conversation_routes, learning_routes
 
 app = FastAPI(title="SupportMind Backend")
 
@@ -17,8 +17,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(endpoints.router, prefix="/api")
-app.include_router(learning_endpoints.router, prefix="/api")
+app.include_router(conversation_routes.router, prefix="/api")
+app.include_router(learning_routes.router, prefix="/api")
 
 
 @app.get("/")

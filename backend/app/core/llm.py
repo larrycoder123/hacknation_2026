@@ -31,15 +31,6 @@ async def generate_structured_output(
     temperature: float | None = None,
 ) -> T:
     """Generate structured output from the LLM.
-
-    Args:
-        prompt: The user prompt.
-        output_schema: Pydantic model for the expected output.
-        system_prompt: Optional system instructions.
-        temperature: Optional temperature override (0=extraction, 0.3-0.7=drafting).
-
-    Returns:
-        Parsed Pydantic model instance.
     """
     llm = get_llm()
     if temperature is not None:

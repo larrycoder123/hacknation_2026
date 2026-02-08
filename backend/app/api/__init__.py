@@ -1,5 +1,5 @@
-"""API module - FastAPI endpoints."""
+"""API module - FastAPI route handlers."""
 
-from . import endpoints, learning_endpoints
+from . import conversation_routes, learning_routes
 
-__all__ = ["endpoints", "learning_endpoints"]
+__all__ = ["conversation_routes", "learning_routes"]
