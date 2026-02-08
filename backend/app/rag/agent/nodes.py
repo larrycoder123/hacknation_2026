@@ -386,15 +386,29 @@ def validate(state: RagState) -> dict:
 
 
 def log_retrieval(state: RagState) -> dict:
-    """Write retrieval log entries to Supabase for each top hit."""
-    client = get_supabase_client()
+    """Write retrieval log entries to Supabase for each top hit.
+
+    Logs with whatever identifiers are available:
+    - conversation_id only (suggested-actions, before ticket exists)
+    - ticket_number (gap detection during close, after ticket created)
+    - both (if both are set)
+
+    Skips logging only if neither identifier is set.
+    """
     ticket_number = state.input.ticket_number
+    conversation_id = state.input.conversation_id
+
+    if not ticket_number and not conversation_id:
+        return {}
+
+    client = get_supabase_client()
 
     entries: list[dict] = []
     for i, hit in enumerate(state.evidence[:10]):
         entry = RetrievalLogEntry(
             retrieval_id=f"RET-{uuid.uuid4().hex[:12]}",
             ticket_number=ticket_number,
+            conversation_id=conversation_id,
             attempt_number=state.attempt + 1,
             query_text=state.input.question[:500],
             source_type=hit.source_type,
@@ -410,7 +424,8 @@ def log_retrieval(state: RagState) -> dict:
             client.table("retrieval_log").insert(entries).execute()
         except Exception:
             logger.exception(
-                "Failed to write retrieval log entries for ticket=%s",
+                "Failed to write retrieval log entries for conversation=%s ticket=%s",
+                conversation_id,
                 ticket_number,
             )
 

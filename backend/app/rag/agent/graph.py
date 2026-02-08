@@ -80,6 +80,7 @@ def run_rag(
     source_types: list[CorpusSourceType] | None = None,
     top_k: int = 10,
     ticket_number: str | None = None,
+    conversation_id: str | None = None,
 ) -> RagResult:
     """Run the QA RAG agent to answer a question.
 
@@ -89,6 +90,7 @@ def run_rag(
         source_types: Optional source type filter
         top_k: Number of evidence items to use
         ticket_number: Optional ticket number for retrieval logging
+        conversation_id: Optional conversation ID for pre-ticket logging
 
     Returns:
         RagResult with answer, citations, and top hits
@@ -102,6 +104,7 @@ def run_rag(
         source_types=source_types,
         top_k=top_k,
         ticket_number=ticket_number,
+        conversation_id=conversation_id,
     )
 
     initial_state = RagState(input=input_data, top_k=top_k)

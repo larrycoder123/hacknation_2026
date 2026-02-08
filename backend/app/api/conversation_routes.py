@@ -79,6 +79,7 @@ async def get_suggested_actions(conversation_id: str = Path(min_length=1, max_le
             question=query,
             category=getattr(conversation, "category", None),
             top_k=5,
+            conversation_id=conversation_id,
         )
 
         actions: list[SuggestedAction] = []
@@ -160,11 +161,12 @@ async def close_conversation(
     # Run self-learning pipeline (synchronous for demo)
     if ticket and payload.resolution_type == "Resolved Successfully":
         try:
-            # Use conversation_id as ticket_number for now (until real ticket IDs from DB)
             ticket_number = getattr(ticket, "ticket_number", conversation_id)
             resolved = payload.resolution_type == "Resolved Successfully"
             learning_result = await learning_service.run_post_conversation_learning(
-                ticket_number, resolved=resolved
+                ticket_number,
+                resolved=resolved,
+                conversation_id=conversation_id,
             )
             logger.info(
                 "Learning pipeline completed for %s: classification=%s",

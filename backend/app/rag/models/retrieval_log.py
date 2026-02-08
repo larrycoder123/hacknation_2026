@@ -21,6 +21,9 @@ class RetrievalLogEntry(BaseModel):
     ticket_number: str | None = Field(
         default=None, description="Linked ticket for grouping attempts"
     )
+    conversation_id: str | None = Field(
+        default=None, description="Conversation ID (set before ticket exists)"
+    )
     attempt_number: int = Field(default=1, description="Attempt number within ticket")
     query_text: str = Field(default="", description="What the agent searched for")
     source_type: str = Field(default="", description="SCRIPT / KB / TICKET_RESOLUTION")

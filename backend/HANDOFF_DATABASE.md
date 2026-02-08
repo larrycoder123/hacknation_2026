@@ -34,36 +34,33 @@ WHERE proposed_kb_article_id IS NOT NULL AND event_type IS NULL;
 | reviewer_role | TEXT | Who reviewed (`System` for auto-approved CONFIRMED events) |
 | event_timestamp | TIMESTAMPTZ | When the event occurred |
 
-## 2. Ensure `retrieval_log` table exists
+## 2. Modify `retrieval_log` table
 
-This may already exist from the RAG component's `rpc_functions.sql`. Verify:
+The table exists from the migration but needs changes for pre-ticket logging. During live support, the agent gets suggested actions via RAG before a ticket exists — those logs are linked by `conversation_id` and later stamped with `ticket_number` when the conversation closes.
 
 ```sql
-CREATE TABLE IF NOT EXISTS retrieval_log (
-    retrieval_id     TEXT PRIMARY KEY,
-    ticket_number    TEXT,
-    attempt_number   INT NOT NULL,
-    query_text       TEXT,
-    source_type      TEXT,
-    source_id        TEXT,
-    similarity_score FLOAT,
-    outcome          TEXT CHECK (outcome IN ('RESOLVED', 'UNHELPFUL', 'PARTIAL')),
-    created_at       TIMESTAMPTZ DEFAULT now()
-);
+-- Make ticket_number nullable (logs exist before ticket is created)
+ALTER TABLE retrieval_log ALTER COLUMN ticket_number DROP NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_retrieval_log_ticket ON retrieval_log(ticket_number);
+-- Drop the FK constraint (conversation_id is used before ticket exists in DB)
+ALTER TABLE retrieval_log DROP CONSTRAINT retrieval_log_ticket_number_fkey;
+
+-- Add conversation_id column for pre-ticket log linking
+ALTER TABLE retrieval_log ADD COLUMN conversation_id TEXT;
+CREATE INDEX idx_retrieval_log_conversation ON retrieval_log(conversation_id);
+
+-- Drop the unique constraint that conflicts with multiple RAG calls per conversation
+ALTER TABLE retrieval_log DROP CONSTRAINT retrieval_log_ticket_number_attempt_number_key;
 ```
+
+**How logging works:**
+1. Agent opens conversation → views suggested actions → RAG logs with `conversation_id` only
+2. Agent closes conversation → ticket created → backend runs: `UPDATE retrieval_log SET ticket_number = $1 WHERE conversation_id = $2 AND ticket_number IS NULL`
+3. Learning pipeline reads logs by `ticket_number`, bulk-sets outcomes
 
 **Note on outcomes:** Outcomes are NOT set per-answer. When a conversation closes, the backend bulk-updates all retrieval_log rows for that ticket:
 - "Resolved Successfully" → all outcomes set to `RESOLVED`
 - "Not Applicable" → all outcomes set to `UNHELPFUL`
-
-This is done via a simple UPDATE query (no RPC needed):
-```sql
-UPDATE retrieval_log
-SET outcome = 'RESOLVED'   -- or 'UNHELPFUL'
-WHERE ticket_number = $1 AND outcome IS NULL;
-```
 
 ## 3. Ensure `match_corpus()` RPC exists
 
@@ -100,6 +97,6 @@ $$ LANGUAGE plpgsql;
 |---|---|---|
 | `learning_events.event_type` | ADD COLUMN | `GAP` / `CONTRADICTION` / `CONFIRMED` |
 | `learning_events.flagged_kb_article_id` | ADD COLUMN | For CONTRADICTION events |
-| `retrieval_log` table | VERIFY EXISTS | Created by RAG rpc_functions.sql |
+| `retrieval_log` | ALTER TABLE | Add `conversation_id`, make `ticket_number` nullable, drop FK + unique constraint |
 | `match_corpus()` RPC | VERIFY EXISTS | Created by RAG rpc_functions.sql |
 | `update_corpus_confidence()` RPC | VERIFY/CREATE | Used by learning service |

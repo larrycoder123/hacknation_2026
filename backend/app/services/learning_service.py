@@ -37,10 +37,12 @@ logger = logging.getLogger(__name__)
 async def run_post_conversation_learning(
     ticket_number: str,
     resolved: bool = True,
+    conversation_id: str | None = None,
 ) -> SelfLearningResult:
     """Run the full self-learning pipeline for a closed ticket.
 
-    Stage 0: Bulk-set retrieval_log outcomes based on resolution status.
+    Stage 0: Link retrieval_log entries from conversation_id to ticket_number,
+             then bulk-set outcomes based on resolution status.
     Stage 1: Fetch retrieval_log entries, update confidence scores on corpus.
     Stage 2: Run fresh RAG gap detection against the ticket's resolution.
     Stage 3: Act on classification (SAME_KNOWLEDGE / CONTRADICTS / NEW_KNOWLEDGE).
@@ -50,11 +52,15 @@ async def run_post_conversation_learning(
         resolved: Whether the conversation was resolved successfully.
                   True → all retrieval_log outcomes set to RESOLVED.
                   False → all set to UNHELPFUL.
+        conversation_id: Original conversation ID, used to link pre-ticket
+                        retrieval logs to the now-created ticket.
 
     Returns:
         SelfLearningResult with all outcomes.
     """
-    # ── Stage 0: Bulk-set retrieval outcomes ──────────────────────
+    # ── Stage 0: Link logs & set outcomes ─────────────────────────
+    if conversation_id:
+        _link_logs_to_ticket(conversation_id, ticket_number)
     _set_bulk_outcomes(ticket_number, resolved)
 
     # ── Stage 1: Score retrieval logs ─────────────────────────────
@@ -175,6 +181,29 @@ async def review_learning_event(event_id: str, decision: ReviewDecision) -> Lear
 
 
 # ── Stage 1 helpers: Log scoring ─────────────────────────────────────
+
+
+def _link_logs_to_ticket(conversation_id: str, ticket_number: str) -> None:
+    """Link pre-ticket retrieval_log entries to the now-created ticket.
+
+    During live support, retrieval logs are written with conversation_id only
+    (no ticket_number). Once the ticket is created at close, this function
+    stamps the ticket_number onto those logs so Stage 1 can find them.
+    """
+    sb = get_supabase()
+    try:
+        sb.table("retrieval_log").update(
+            {"ticket_number": ticket_number}
+        ).eq("conversation_id", conversation_id).is_("ticket_number", "null").execute()
+        logger.info(
+            "Linked retrieval_log entries from conversation=%s to ticket=%s",
+            conversation_id,
+            ticket_number,
+        )
+    except Exception:
+        logger.exception(
+            "Failed to link retrieval logs for conversation=%s", conversation_id
+        )
 
 
 def _set_bulk_outcomes(ticket_number: str, resolved: bool) -> None:

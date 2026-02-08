@@ -35,6 +35,9 @@ class RagInput(BaseModel):
     ticket_number: str | None = Field(
         default=None, description="Ticket number for retrieval logging"
     )
+    conversation_id: str | None = Field(
+        default=None, description="Conversation ID for pre-ticket retrieval logging"
+    )
 
 
 class QueryVariant(BaseModel):
