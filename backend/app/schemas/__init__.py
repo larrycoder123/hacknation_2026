@@ -18,7 +18,7 @@ from .learning import (
     SelfLearningResult,
 )
 from .messages import Message, Sender
-from .tickets import Ticket, TicketCreateRequest
+from .tickets import Ticket, TicketCreateRequest, TicketDBRow
 
 __all__ = [
     # Actions
@@ -43,4 +43,5 @@ __all__ = [
     # Tickets
     "Ticket",
     "TicketCreateRequest",
+    "TicketDBRow",
 ]

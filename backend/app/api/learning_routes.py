@@ -22,7 +22,7 @@ router = APIRouter(tags=["learning"])
     response_model=SelfLearningResult,
 )
 async def post_conversation_learn(
-    ticket_number: str = Path(pattern=r"^T-\d{1,10}$"),
+    ticket_number: str = Path(pattern=r"^CS-[A-F0-9]{8}$"),
 ) -> SelfLearningResult:
     """Run the self-learning pipeline after a ticket is closed.
 

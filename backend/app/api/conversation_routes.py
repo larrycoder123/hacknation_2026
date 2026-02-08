@@ -1,9 +1,8 @@
+import asyncio
 import logging
-
-from fastapi import APIRouter, HTTPException, Path
 from typing import List, Optional
 
-logger = logging.getLogger(__name__)
+from fastapi import APIRouter, HTTPException, Path
 
 from ..schemas.actions import SuggestedAction
 from ..schemas.conversations import CloseConversationPayload, CloseConversationResponse, Conversation
@@ -12,6 +11,8 @@ from ..schemas.tickets import Ticket
 from ..data.conversations import MOCK_CONVERSATIONS, MOCK_MESSAGES
 from ..data.suggestions import MOCK_SUGGESTIONS
 from ..services import ticket_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -59,6 +60,7 @@ async def close_conversation(conversation_id: str = Path(min_length=1, max_lengt
     messages = MOCK_MESSAGES.get(conversation_id, [])
 
     ticket: Optional[Ticket] = None
+    warnings: list[str] = []
 
     # Generate ticket if requested
     if payload.create_ticket and payload.resolution_type == "Resolved Successfully":
@@ -70,8 +72,20 @@ async def close_conversation(conversation_id: str = Path(min_length=1, max_lengt
                 resolution_notes=payload.notes,
             )
 
-            # TODO: Save ticket to database
-            logger.info("Generated ticket for conversation %s: %s", conversation_id, ticket.model_dump_json())
+            logger.info("Generated ticket for conversation %s", conversation_id)
+
+            # Persist to DB so the self-learning pipeline can pick it up
+            try:
+                tn = await asyncio.to_thread(
+                    ticket_service.save_ticket_to_db,
+                    ticket,
+                    conversation_id,
+                    conversation.priority,
+                )
+                ticket.ticket_number = tn
+            except Exception:
+                logger.exception("Failed to save ticket to DB for conversation %s", conversation_id)
+                warnings.append("Ticket was generated but could not be saved to the database.")
 
         except Exception:
             logger.exception("Failed to generate ticket for conversation %s", conversation_id)
@@ -83,4 +97,5 @@ async def close_conversation(conversation_id: str = Path(min_length=1, max_lengt
         status="success",
         message=f"Conversation {conversation_id} closed successfully",
         ticket=ticket,
+        warnings=warnings,
     )

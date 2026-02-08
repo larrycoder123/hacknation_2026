@@ -1,8 +1,7 @@
 from typing import Optional, Literal
 from pydantic import BaseModel, Field
-from .tickets import Ticket
+from .tickets import Priority, Ticket
 
-Priority = Literal["High", "Medium", "Low"]
 ConversationStatus = Literal["Open", "Pending", "Resolved", "Closed"]
 
 class Conversation(BaseModel):
@@ -28,3 +27,4 @@ class CloseConversationResponse(BaseModel):
     status: str
     message: str
     ticket: Optional[Ticket] = None
+    warnings: list[str] = []
