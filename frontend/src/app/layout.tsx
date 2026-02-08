@@ -14,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pulse | Intelligent Support",
-  description: "AI-powered customer support dashboard designed for modern teams.",
+  title: "SupportMind",
+  description: "Self-learning AI support intelligence layer.",
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({
