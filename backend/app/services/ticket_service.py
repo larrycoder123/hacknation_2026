@@ -133,12 +133,15 @@ def save_ticket_to_db(
 
         try:
             # FK: tickets.ticket_number -> conversations.ticket_number
-            sb.table("conversations").insert(
+            # Use upsert: conversation_id may already exist from mock data
+            # or a previous close attempt. Update ticket_number on conflict.
+            sb.table("conversations").upsert(
                 {
                     "ticket_number": ticket_number,
                     "conversation_id": conversation_id,
                     "issue_summary": ticket.subject,
-                }
+                },
+                on_conflict="conversation_id",
             ).execute()
         except APIError as exc:
             if "duplicate" in str(exc).lower() or "23505" in str(exc):

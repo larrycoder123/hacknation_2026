@@ -14,10 +14,12 @@ venv/
 .env
 .env.local
 .env.*.local
+env.txt
 
 # IDE
 .idea/
 .vscode/
+*.iml
 *.swp
 *.swo
 *~
