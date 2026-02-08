@@ -32,7 +32,7 @@ export default function CloseConversationModal({ isOpen, onClose, onConfirm, con
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm transition-all duration-100 data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=open]:fade-in">
-            <div className="w-full max-w-md bg-card rounded-xl shadow-lg border border-border animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-full max-w-md bg-card rounded-lg shadow-lg border border-border animate-in fade-in zoom-in-95 duration-200">
                 <div className="p-6 space-y-6">
                     <div>
                         <h3 className="text-lg font-semibold text-foreground tracking-tight">Close Conversation</h3>

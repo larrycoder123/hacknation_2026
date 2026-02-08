@@ -14,13 +14,13 @@ interface ConversationQueueProps {
 
 const PriorityBadge = ({ priority }: { priority: Priority }) => {
     const variants: Record<Priority, string> = {
-        High: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-200/20',
-        Medium: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-200/20',
-        Low: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200/20',
+        High: 'bg-red-500/10 text-red-400 border-red-500/20',
+        Medium: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+        Low: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
     };
 
     return (
-        <span className={cn("px-2 py-0.5 rounded-md text-xs uppercase tracking-wider font-semibold border", variants[priority])}>
+        <span className={cn("px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-semibold border", variants[priority])}>
             {priority}
         </span>
     );
@@ -36,19 +36,19 @@ export default function ConversationQueue({ conversations, selectedConversationI
     );
 
     return (
-        <div className="w-80 border-r border-border h-full flex flex-col bg-muted/10 backdrop-blur-xl flex-shrink-0">
-            <div className="p-4 border-b border-border space-y-4">
+        <div className="w-80 h-full flex flex-col bg-background/50 backdrop-blur-xl flex-shrink-0 border border-border rounded-lg shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-border/50 space-y-4 bg-background/50">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-base font-semibold text-foreground tracking-tight">Inbox</h2>
-                    <div className="text-sm text-muted-foreground font-medium bg-secondary px-2 py-0.5 rounded-md">
+                    <h2 className="text-sm font-semibold text-foreground tracking-tight">Inbox</h2>
+                    <div className="text-xs text-muted-foreground font-medium bg-secondary px-2 py-0.5 rounded-md">
                         {filteredConversations.length}
                     </div>
                 </div>
                 <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                     <Input
-                        placeholder="Search conversations..."
-                        className="pl-8 bg-background border-border"
+                        placeholder="Search..."
+                        className="pl-8 h-9 text-sm bg-background/50 border-border/50 transition-colors focus-visible:ring-1"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -60,23 +60,23 @@ export default function ConversationQueue({ conversations, selectedConversationI
                         key={conversation.id}
                         onClick={() => onSelectConversation(conversation.id)}
                         className={cn(
-                            "w-full text-left p-3 rounded-lg border border-transparent transition-all duration-200 group relative",
+                            "w-full text-left p-3 rounded-md border border-transparent transition-all duration-200 group relative",
                             selectedConversationId === conversation.id
                                 ? "bg-background shadow-sm border-border"
-                                : "hover:bg-sidebar-accent hover:border-border/50 text-muted-foreground hover:text-foreground"
+                                : "hover:bg-muted/50 hover:border-border/20 text-muted-foreground hover:text-foreground"
                         )}
                     >
-                        <div className="flex justify-between items-start mb-2">
+                        <div className="flex justify-between items-start mb-1.5">
                             <PriorityBadge priority={conversation.priority} />
-                            <span className="text-xs font-medium opacity-60 tabular-nums">{conversation.timeAgo}</span>
+                            <span className="text-[10px] font-medium opacity-50 tabular-nums">{conversation.timeAgo}</span>
                         </div>
                         <div className={cn(
-                            "font-medium text-base truncate mb-0.5",
+                            "font-medium text-sm truncate mb-0.5 tracking-tight",
                             selectedConversationId === conversation.id ? "text-foreground" : "text-foreground/80 group-hover:text-foreground"
                         )}>
                             {conversation.customerName}
                         </div>
-                        <div className="text-sm truncate opacity-70">
+                        <div className="text-xs truncate opacity-70">
                             {conversation.subject}
                         </div>
                     </button>
