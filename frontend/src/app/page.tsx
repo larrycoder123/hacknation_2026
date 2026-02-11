@@ -1,93 +1,225 @@
 "use client";
 
-/**
- * Agent Workspace — main support dashboard page.
- *
- * Three-column layout:
- *   Left:   ConversationQueue (inbox with search and priority badges)
- *   Center: ConversationDetail (chat messages, agent input, close button)
- *   Right:  AIAssistant (RAG-powered suggestions triggered by "Analyze")
- *
- * Selecting a conversation loads its messages. Clicking "Analyze" triggers the
- * RAG pipeline. Closing a resolved conversation generates a ticket and runs the
- * self-learning pipeline (gap detection, confidence updates, KB drafting).
- */
+import { useState, useEffect } from "react";
+import {
+  Brain,
+  RefreshCw,
+  UserCheck,
+  Loader2,
+  CheckCircle2,
+  AlertTriangle,
+} from "lucide-react";
+import { checkBackendHealth } from "@/app/api/client";
 
-import { useState } from "react";
-import { SuggestedAction } from "@/types";
-import ConversationQueue from "@/components/ConversationQueue";
-import ConversationDetail from "@/components/ConversationDetail";
-import AIAssistant from "@/components/AIAssistant";
-import CloseConversationModal from "@/components/CloseConversationModal";
-import { useConversationState } from "@/hooks/useConversationState";
+const flowSteps = [
+  { title: "Resolved Ticket", desc: "An agent closes a ticket and the resolution becomes a learning signal." },
+  { title: "Gap Detection", desc: "The system compares the resolution against existing knowledge automatically." },
+  { title: "Draft KB Article", desc: "New or contradicting knowledge is drafted into a KB article by AI." },
+  { title: "Human Review", desc: "A reviewer approves, edits, or rejects the draft before publication." },
+  { title: "Publish to KB", desc: "Approved articles are embedded and added to the retrieval corpus." },
+  { title: "RAG Retrieval", desc: "Future queries score and rerank candidates, learned knowledge improves results." },
+];
 
-export default function Home() {
-  const {
-    conversations,
-    selectedConversationId,
-    currentConversation,
-    currentMessages,
-    suggestions,
-    isSuggestionsLoading,
-    isCustomerTyping,
-    error,
-    setError,
-    inputMessage,
-    setInputMessage,
-    selectConversation,
-    sendMessage,
-    getSuggestions,
-    closeActiveConversation,
-  } = useConversationState();
+const features = [
+  {
+    icon: Brain,
+    title: "AI Copilot",
+    description:
+      "Real-time RAG-powered answer suggestions surface the most relevant scripts, KB articles, and past resolutions while agents handle tickets.",
+  },
+  {
+    icon: RefreshCw,
+    title: "Self-Learning Loop",
+    description:
+      "When a ticket closes, the system compares the resolution against existing knowledge, detecting gaps, contradictions, and confirmations automatically.",
+  },
+  {
+    icon: UserCheck,
+    title: "Human-in-the-Loop Review",
+    description:
+      "Every AI-drafted knowledge article requires explicit human approval before entering the retrieval corpus, keeping quality high.",
+  },
+];
 
-  const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
+const techStack = [
+  "Next.js",
+  "FastAPI",
+  "LangGraph",
+  "pgvector",
+  "Supabase",
+  "GPT-4o",
+  "Cohere Rerank",
+];
 
-  const handleApplySuggestion = (suggestion: SuggestedAction) => {
-    if (suggestion.type === "script") {
-      alert(`Executing Script: ${suggestion.title}\n\n${suggestion.content}`);
+const stats = [
+  { value: "1,200+", label: "Support Tickets" },
+  { value: "150+", label: "KB Articles" },
+  { value: "50+", label: "Agent Scripts" },
+  { value: "3,072", label: "Embedding Dims" },
+];
+
+export default function OverviewPage() {
+  const [serverStatus, setServerStatus] = useState<"checking" | "online" | "offline">("checking");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function poll() {
+      const PHASE1_END = 60_000;  // 0-60s: check every 5s
+      const PHASE2_END = 180_000; // 60-180s: check every 30s
+      const start = Date.now();
+
+      while (!cancelled) {
+        const ok = await checkBackendHealth();
+        if (cancelled) return;
+
+        if (ok) {
+          setServerStatus("online");
+          return;
+        }
+
+        const elapsed = Date.now() - start;
+
+        if (elapsed >= PHASE2_END) {
+          setServerStatus("offline");
+          return;
+        }
+
+        if (elapsed >= PHASE1_END) {
+          setServerStatus("offline");
+          await new Promise((r) => setTimeout(r, 30_000));
+        } else {
+          await new Promise((r) => setTimeout(r, 5_000));
+        }
+      }
     }
-  };
+
+    poll();
+    return () => { cancelled = true; };
+  }, []);
 
   return (
-    <main className="flex h-full w-full text-foreground overflow-hidden font-sans antialiased selection:bg-primary/20 relative gap-4 md:gap-6">
-      {error && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-destructive/90 text-white px-4 py-2 text-sm flex items-center gap-4 rounded-full shadow-lg backdrop-blur-md animate-in fade-in slide-in-from-top-4">
-          <span>{error}</span>
-          <button onClick={() => setError(null)} className="font-bold hover:opacity-80">X</button>
-        </div>
-      )}
+    <div className="flex-1 overflow-y-auto bg-background/50 backdrop-blur-xl border border-border rounded-lg shadow-sm">
+      <div className="max-w-4xl mx-auto p-8 space-y-12">
+        {/* Hero */}
+        <section className="space-y-3 text-center pt-8">
+          <h1 className="text-4xl font-bold tracking-tight">SupportMind</h1>
+          <p className="text-lg text-muted-foreground">
+            Self-learning AI support intelligence layer
+          </p>
 
-      <ConversationQueue
-        conversations={conversations}
-        selectedConversationId={selectedConversationId}
-        onSelectConversation={selectConversation}
-      />
+          {/* Server status indicator */}
+          <div className="flex items-center justify-center gap-2 text-sm">
+            {serverStatus === "checking" && (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <span className="text-muted-foreground">
+                  Demo server is waking up &mdash; may take 30-60 seconds...
+                </span>
+              </>
+            )}
+            {serverStatus === "online" && (
+              <>
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <span className="text-green-600 dark:text-green-400">
+                  Server is online &mdash; ready to explore!
+                </span>
+              </>
+            )}
+            {serverStatus === "offline" && (
+              <>
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                <span className="text-orange-600 dark:text-orange-400">
+                  Server may be unavailable
+                </span>
+              </>
+            )}
+          </div>
+        </section>
 
-      <ConversationDetail
-        conversation={currentConversation}
-        messages={currentMessages}
-        onSendMessage={sendMessage}
-        onCloseConversation={() => selectedConversationId && setIsCloseModalOpen(true)}
-        inputMessage={inputMessage}
-        onInputChange={setInputMessage}
-        isCustomerTyping={isCustomerTyping}
-      />
+        {/* The Problem */}
+        <section className="space-y-4">
+          <h2 className="text-2xl font-bold tracking-tight">The Problem</h2>
+          <p className="text-muted-foreground leading-relaxed">
+            Support knowledge lives in scattered scripts, past tickets, and
+            tribal memory, so agents waste time searching for answers. New
+            resolutions discovered on the floor never make it back into the
+            knowledge base, and existing articles drift out of date with no
+            systematic way to detect contradictions. Manual KB curation
+            doesn&apos;t scale. Teams need an automated learning loop with
+            human oversight.
+          </p>
+        </section>
 
-      <AIAssistant
-        suggestions={suggestions}
-        isLoading={isSuggestionsLoading}
-        onGetSuggestions={getSuggestions}
-        onApplySuggestion={handleApplySuggestion}
-      />
+        {/* How It Works */}
+        <section className="space-y-4">
+          <h2 className="text-2xl font-bold tracking-tight">How It Works</h2>
+          <div className="relative ml-4">
+            <div className="absolute left-0 top-4 bottom-4 w-px bg-border" />
+            {flowSteps.map(({ title, desc }, i) => (
+              <div key={title} className="relative flex items-start gap-5 py-3">
+                <div className="relative z-10 w-8 h-8 rounded-full bg-background border-2 border-primary/40 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0 -ml-[15px]">
+                  {i + 1}
+                </div>
+                <div className="pt-1">
+                  <p className="font-semibold text-sm leading-none">{title}</p>
+                  <p className="text-sm text-muted-foreground mt-1.5">{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
 
-      {selectedConversationId && (
-        <CloseConversationModal
-          isOpen={isCloseModalOpen}
-          onClose={() => setIsCloseModalOpen(false)}
-          onConfirm={closeActiveConversation}
-          conversationId={selectedConversationId}
-        />
-      )}
-    </main>
+        {/* Key Features */}
+        <section className="space-y-4">
+          <h2 className="text-2xl font-bold tracking-tight">Key Features</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {features.map(({ icon: Icon, title, description }) => (
+              <div
+                key={title}
+                className="p-4 bg-muted/30 border border-border/50 rounded-lg space-y-2"
+              >
+                <Icon className="h-6 w-6 text-primary" />
+                <h3 className="font-semibold">{title}</h3>
+                <p className="text-sm text-muted-foreground">{description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Tech Stack */}
+        <section className="space-y-4">
+          <h2 className="text-2xl font-bold tracking-tight">Tech Stack</h2>
+          <div className="flex flex-wrap gap-2">
+            {techStack.map((tech) => (
+              <span
+                key={tech}
+                className="text-xs px-2.5 py-1 bg-muted/50 border border-border/50 rounded-full"
+              >
+                {tech}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        {/* Dataset Stats */}
+        <section className="space-y-4 pb-8">
+          <h2 className="text-2xl font-bold tracking-tight">Dataset Stats</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {stats.map(({ value, label }) => (
+              <div
+                key={label}
+                className="p-4 bg-muted/30 border border-border/50 rounded-lg text-center"
+              >
+                <div className="text-2xl font-bold">{value}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
   );
 }

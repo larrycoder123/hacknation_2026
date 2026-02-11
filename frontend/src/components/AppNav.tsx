@@ -16,8 +16,8 @@ import { LayoutDashboard, MessageSquare, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/overview", icon: LayoutDashboard, label: "Overview" },
-  { href: "/", icon: MessageSquare, label: "Support Dashboard" },
+  { href: "/", icon: LayoutDashboard, label: "Overview" },
+  { href: "/chats", icon: MessageSquare, label: "Support Dashboard" },
   { href: "/review", icon: BookOpen, label: "Learning Review" },
 ];
 

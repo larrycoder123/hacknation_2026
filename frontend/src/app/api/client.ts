@@ -12,6 +12,20 @@ import {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 /**
+ * Ping the backend root to check if the server is awake.
+ * Strips `/api` from API_BASE_URL to hit `GET /`.
+ */
+export async function checkBackendHealth(): Promise<boolean> {
+    const baseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
+    try {
+        const response = await fetch(baseUrl, { signal: AbortSignal.timeout(5_000) });
+        return response.ok;
+    } catch {
+        return false;
+    }
+}
+
+/**
  * Fetch all conversations from the backend.
  */
 export async function fetchConversations(): Promise<Conversation[]> {
