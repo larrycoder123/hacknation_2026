@@ -44,6 +44,16 @@ export interface Message {
 
 export type ActionType = 'script' | 'response' | 'action';
 
+export interface ScoreBreakdown {
+  vector_similarity: number;
+  rerank_score: number | null;
+  confidence: number;
+  usage_count: number;
+  freshness: number;
+  learning_score: number;
+  final_score: number;
+}
+
 export interface SuggestedAction {
   id: string;
   type: ActionType;
@@ -53,6 +63,7 @@ export interface SuggestedAction {
   content: string;
   source: string;
   adapted_summary?: string;
+  score_breakdown?: ScoreBreakdown;
 }
 
 export interface CloseConversationPayload {
@@ -148,6 +159,11 @@ export interface ReviewDecisionPayload {
   decision: FinalStatus;
   reviewer_role: ReviewerRole;
   reason?: string;
+}
+
+export interface SimulateCustomerResponse {
+  content: string;
+  resolved: boolean;
 }
 
 // Utility function to convert backend conversation to display format

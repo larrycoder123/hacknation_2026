@@ -23,7 +23,8 @@ import {
     fetchConversations,
     fetchConversationMessages,
     fetchSuggestedActions,
-    closeConversation
+    closeConversation,
+    simulateCustomerReply
 } from "@/app/api/client";
 import { fillSuggestionTemplates } from "@/lib/templateFiller";
 
@@ -40,7 +41,7 @@ export function useConversationState() {
     const [error, setError] = useState<string | null>(null);
     const [inputMessage, setInputMessage] = useState("");
     const [isCustomerTyping, setIsCustomerTyping] = useState(false);
-    const autoRepliedRef = useRef<Set<string>>(new Set());
+    const usedSuggestionIdsRef = useRef<Set<string>>(new Set());
 
     // Fetch conversations on mount
     useEffect(() => {
@@ -85,6 +86,7 @@ export function useConversationState() {
         setSelectedConversationId(id);
         setSuggestions([]);
         setInputMessage("");
+        usedSuggestionIdsRef.current.clear();
     }, []);
 
     const sendMessage = useCallback((content: string) => {
@@ -101,23 +103,30 @@ export function useConversationState() {
             }),
         };
 
+        const updatedMessages = [...(messages[selectedConversationId] || []), newMessage];
         setMessages((prev) => ({
             ...prev,
-            [selectedConversationId]: [...(prev[selectedConversationId] || []), newMessage],
+            [selectedConversationId]: updatedMessages,
         }));
 
-        // Demo auto-reply: typing indicator then customer responds once
+        // LLM-powered customer simulation
         const convId = selectedConversationId;
-        if (!autoRepliedRef.current.has(convId)) {
-            autoRepliedRef.current.add(convId);
-            setTimeout(() => setIsCustomerTyping(true), 1000);
-            setTimeout(() => {
-                setIsCustomerTyping(false);
+        const delay = 1000 + Math.random() * 2000; // 1-3s random delay
+
+        setTimeout(async () => {
+            setIsCustomerTyping(true);
+            try {
+                const simMessages = updatedMessages
+                    .filter((m) => m.sender === "agent" || m.sender === "customer")
+                    .map((m) => ({ sender: m.sender as "agent" | "customer", content: m.content }));
+
+                const result = await simulateCustomerReply(convId, simMessages);
+
                 const reply: Message = {
-                    id: `m-auto-${Date.now()}`,
+                    id: `m-sim-${Date.now()}`,
                     conversation_id: convId,
                     sender: "customer",
-                    content: "That worked perfectly — the issue is resolved now. Thank you so much for the quick help!",
+                    content: result.content,
                     timestamp: new Date().toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -127,18 +136,33 @@ export function useConversationState() {
                     ...prev,
                     [convId]: [...(prev[convId] || []), reply],
                 }));
-            }, 3500);
-        }
-    }, [selectedConversationId]);
+            } catch (err) {
+                console.error("Customer simulation failed:", err);
+            } finally {
+                setIsCustomerTyping(false);
+            }
+        }, delay);
+    }, [selectedConversationId, messages]);
 
     const getSuggestions = useCallback(async () => {
         if (!selectedConversationId) return;
         setIsSuggestionsLoading(true);
         try {
-            const actions = await fetchSuggestedActions(selectedConversationId);
-            // Find current conversation and messages for template context
-            const conversation = conversations.find(c => c.id === selectedConversationId) || null;
+            // Send live messages so RAG uses the latest customer context
             const conversationMessages = messages[selectedConversationId] || [];
+            const liveMessages = conversationMessages
+                .filter((m) => m.sender === "agent" || m.sender === "customer")
+                .map((m) => ({ sender: m.sender as "agent" | "customer", content: m.content }));
+
+            const excludeIds = Array.from(usedSuggestionIdsRef.current);
+
+            const actions = await fetchSuggestedActions(selectedConversationId, liveMessages, excludeIds);
+
+            // Track these suggestion IDs as used
+            actions.forEach((a) => usedSuggestionIdsRef.current.add(a.id));
+
+            // Find current conversation for template context
+            const conversation = conversations.find(c => c.id === selectedConversationId) || null;
             // Fill in template placeholders with actual context values
             const filledActions = fillSuggestionTemplates(actions, {
                 conversation,

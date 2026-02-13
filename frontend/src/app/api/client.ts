@@ -4,6 +4,7 @@ import {
     CloseConversationResponse,
     Conversation,
     Message,
+    SimulateCustomerResponse,
     LearningEventListResponse,
     ReviewDecisionPayload,
     LearningEventDetail,
@@ -60,9 +61,22 @@ export async function fetchConversationMessages(conversationId: string): Promise
 
 /**
  * Fetch AI-suggested actions for a conversation.
+ * Sends live messages so RAG queries reflect the full conversation,
+ * and exclude_ids to filter out already-used suggestions.
  */
-export async function fetchSuggestedActions(conversationId: string): Promise<SuggestedAction[]> {
-    const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}/suggested-actions`);
+export async function fetchSuggestedActions(
+    conversationId: string,
+    messages?: { sender: 'agent' | 'customer'; content: string }[],
+    excludeIds?: string[],
+): Promise<SuggestedAction[]> {
+    const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}/suggested-actions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            messages: messages || [],
+            exclude_ids: excludeIds || [],
+        }),
+    });
     if (!response.ok) {
         throw new Error('Failed to fetch suggested actions');
     }
@@ -125,6 +139,24 @@ export async function reviewLearningEvent(
     });
     if (!response.ok) {
         throw new Error('Failed to review learning event');
+    }
+    return response.json();
+}
+
+/**
+ * Simulate a customer reply using an LLM.
+ */
+export async function simulateCustomerReply(
+    conversationId: string,
+    messages: { sender: 'agent' | 'customer'; content: string }[],
+): Promise<SimulateCustomerResponse> {
+    const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}/simulate-customer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages }),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to simulate customer reply');
     }
     return response.json();
 }
