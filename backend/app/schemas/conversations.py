@@ -29,6 +29,7 @@ class CloseConversationPayload(BaseModel):
     resolution_type: Literal["Resolved Successfully", "Not Applicable"]
     notes: Optional[str] = Field(default=None, max_length=5000)
     create_ticket: bool
+    applied_source_ids: Optional[list[str]] = None
 
 class CloseConversationResponse(BaseModel):
     """Response after closing a conversation."""

@@ -3,7 +3,7 @@
 import { SuggestedAction, ScoreBreakdown, ActionType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Sparkles, Terminal, MessageSquare, AlertCircle, RefreshCw, Star, Info } from 'lucide-react';
+import { Sparkles, Terminal, MessageSquare, AlertCircle, RefreshCw, Star, Info, Send } from 'lucide-react';
 import ExpandableText from './ExpandableText';
 import MarkdownRenderer from './MarkdownRenderer';
 
@@ -12,6 +12,7 @@ interface AIAssistantProps {
     isLoading: boolean;
     onGetSuggestions: () => void;
     onApplySuggestion: (suggestion: SuggestedAction) => void;
+    onUseReply: (draftReply: string) => void;
 }
 
 const ConfidenceScore = ({ score, breakdown, tooltipAlign = 'right' }: { score: number; breakdown?: ScoreBreakdown; tooltipAlign?: 'left' | 'right' }) => {
@@ -79,7 +80,7 @@ const ActionIcon = ({ type }: { type: ActionType }) => {
  * Displays AI-generated suggestions for the current conversation.
  * It shows a list of suggested actions (scripts, responses) with confidence scores.
  */
-export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, onApplySuggestion }: AIAssistantProps) {
+export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, onApplySuggestion, onUseReply }: AIAssistantProps) {
     return (
         <div className="w-[420px] 2xl:w-[500px] h-full flex flex-col bg-background/50 backdrop-blur-xl flex-shrink-0 border border-border rounded-lg shadow-sm overflow-hidden">
             <div className="p-4 h-14 border-b border-border/50 flex items-center justify-between bg-background/50">
@@ -160,21 +161,33 @@ export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, 
                                                     </div>
                                                 )}
 
-                                                {/* Source reference */}
+                                                {/* Source reference + actions */}
                                                 <div className="flex items-center justify-between pt-2 border-t border-primary/10">
                                                     <span className="text-[10px] text-muted-foreground font-medium">
                                                         {top.source}
                                                     </span>
-                                                    {top.type === 'script' && (
-                                                        <Button
-                                                            onClick={() => onApplySuggestion(top)}
-                                                            size="sm"
-                                                            className="h-6 text-[10px] bg-foreground text-background hover:bg-foreground/90 gap-1.5 px-2.5 shadow-sm"
-                                                        >
-                                                            <Terminal className="w-3 h-3" />
-                                                            Run Script
-                                                        </Button>
-                                                    )}
+                                                    <div className="flex items-center gap-1.5">
+                                                        {top.draft_reply && (
+                                                            <Button
+                                                                onClick={() => onUseReply(top.draft_reply!)}
+                                                                size="sm"
+                                                                className="h-6 text-[10px] bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 px-2.5 shadow-sm"
+                                                            >
+                                                                <Send className="w-3 h-3" />
+                                                                Use Reply
+                                                            </Button>
+                                                        )}
+                                                        {top.type === 'script' && (
+                                                            <Button
+                                                                onClick={() => onApplySuggestion(top)}
+                                                                size="sm"
+                                                                className="h-6 text-[10px] bg-foreground text-background hover:bg-foreground/90 gap-1.5 px-2.5 shadow-sm"
+                                                            >
+                                                                <Terminal className="w-3 h-3" />
+                                                                Run Script
+                                                            </Button>
+                                                        )}
+                                                    </div>
                                                 </div>
 
                                                 {/* Expandable full content */}
@@ -228,21 +241,33 @@ export default function AIAssistant({ suggestions, isLoading, onGetSuggestions, 
                                                                 />
                                                             )}
 
-                                                            {/* Source reference */}
+                                                            {/* Source reference + actions */}
                                                             <div className="flex items-center justify-between pt-2 border-t border-border/40">
                                                                 <span className="text-[10px] text-muted-foreground font-medium">
                                                                     {suggestion.source}
                                                                 </span>
-                                                                {suggestion.type === 'script' && (
-                                                                    <Button
-                                                                        onClick={() => onApplySuggestion(suggestion)}
-                                                                        size="sm"
-                                                                        className="h-6 text-[10px] bg-foreground text-background hover:bg-foreground/90 gap-1.5 px-2.5 shadow-sm"
-                                                                    >
-                                                                        <Terminal className="w-3 h-3" />
-                                                                        Run Script
-                                                                    </Button>
-                                                                )}
+                                                                <div className="flex items-center gap-1.5">
+                                                                    {suggestion.draft_reply && (
+                                                                        <Button
+                                                                            onClick={() => onUseReply(suggestion.draft_reply!)}
+                                                                            size="sm"
+                                                                            className="h-6 text-[10px] bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 px-2.5 shadow-sm"
+                                                                        >
+                                                                            <Send className="w-3 h-3" />
+                                                                            Use Reply
+                                                                        </Button>
+                                                                    )}
+                                                                    {suggestion.type === 'script' && (
+                                                                        <Button
+                                                                            onClick={() => onApplySuggestion(suggestion)}
+                                                                            size="sm"
+                                                                            className="h-6 text-[10px] bg-foreground text-background hover:bg-foreground/90 gap-1.5 px-2.5 shadow-sm"
+                                                                        >
+                                                                            <Terminal className="w-3 h-3" />
+                                                                            Run Script
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
                                                             </div>
 
                                                             {/* Expandable full content */}

@@ -28,6 +28,7 @@ export default function ChatsPage() {
     currentConversation,
     currentMessages,
     suggestions,
+    sessionSuggestions,
     isSuggestionsLoading,
     isCustomerTyping,
     error,
@@ -78,6 +79,7 @@ export default function ChatsPage() {
         isLoading={isSuggestionsLoading}
         onGetSuggestions={getSuggestions}
         onApplySuggestion={handleApplySuggestion}
+        onUseReply={setInputMessage}
       />
 
       {selectedConversationId && (
@@ -86,6 +88,7 @@ export default function ChatsPage() {
           onClose={() => setIsCloseModalOpen(false)}
           onConfirm={closeActiveConversation}
           conversationId={selectedConversationId}
+          sessionSuggestions={sessionSuggestions}
         />
       )}
     </main>

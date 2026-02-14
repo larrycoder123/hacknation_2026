@@ -42,6 +42,7 @@ export function useConversationState() {
     const [inputMessage, setInputMessage] = useState("");
     const [isCustomerTyping, setIsCustomerTyping] = useState(false);
     const usedSuggestionIdsRef = useRef<Set<string>>(new Set());
+    const sessionSuggestionsRef = useRef<SuggestedAction[]>([]);
 
     // Fetch conversations on mount
     useEffect(() => {
@@ -87,6 +88,7 @@ export function useConversationState() {
         setSuggestions([]);
         setInputMessage("");
         usedSuggestionIdsRef.current.clear();
+        sessionSuggestionsRef.current = [];
     }, []);
 
     const sendMessage = useCallback((content: string) => {
@@ -169,6 +171,15 @@ export function useConversationState() {
                 messages: conversationMessages,
             });
             setSuggestions(filledActions);
+
+            // Accumulate all suggestions shown during this session (deduped by id)
+            const existingIds = new Set(sessionSuggestionsRef.current.map(s => s.id));
+            for (const action of filledActions) {
+                if (!existingIds.has(action.id)) {
+                    sessionSuggestionsRef.current.push(action);
+                    existingIds.add(action.id);
+                }
+            }
         } catch (err) {
             console.error("Failed to fetch suggestions:", err);
             setError("Failed to fetch suggestions.");
@@ -253,6 +264,7 @@ export function useConversationState() {
         currentConversation,
         currentMessages,
         suggestions,
+        sessionSuggestions: sessionSuggestionsRef.current,
         isConversationsLoading,
         isMessagesLoading,
         isSuggestionsLoading,

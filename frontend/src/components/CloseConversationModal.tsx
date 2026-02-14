@@ -11,19 +11,31 @@
  */
 
 import { useState } from 'react';
-import { CloseConversationPayload, CloseConversationResponse } from '@/types';
+import { CloseConversationPayload, CloseConversationResponse, SuggestedAction, ActionType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle2, AlertCircle, Loader2, BookOpen, ShieldCheck, Sparkles, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, BookOpen, ShieldCheck, Sparkles, X, ArrowUp, ArrowDown, FileText, Link2, Terminal, MessageSquare, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type ModalPhase = 'form' | 'loading' | 'result';
+
+const SuggestionTypeIcon = ({ type }: { type: ActionType }) => {
+    switch (type) {
+        case 'script':
+            return <Terminal className="w-3.5 h-3.5 text-blue-400" />;
+        case 'response':
+            return <MessageSquare className="w-3.5 h-3.5 text-primary" />;
+        default:
+            return <AlertCircle className="w-3.5 h-3.5 text-red-500" />;
+    }
+};
 
 interface CloseConversationModalProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: (payload: CloseConversationPayload) => Promise<CloseConversationResponse | null>;
     conversationId: string;
+    sessionSuggestions: SuggestedAction[];
 }
 
 const CLASSIFICATION_DISPLAY: Record<string, { label: string; icon: typeof BookOpen; color: string }> = {
@@ -44,23 +56,43 @@ const CLASSIFICATION_DISPLAY: Record<string, { label: string; icon: typeof BookO
     },
 };
 
-export default function CloseConversationModal({ isOpen, onClose, onConfirm, conversationId }: CloseConversationModalProps) {
+export default function CloseConversationModal({ isOpen, onClose, onConfirm, conversationId, sessionSuggestions }: CloseConversationModalProps) {
     const [resolutionType, setResolutionType] = useState<CloseConversationPayload['resolution_type']>('Resolved Successfully');
     const [notes, setNotes] = useState('');
     const [phase, setPhase] = useState<ModalPhase>('form');
     const [response, setResponse] = useState<CloseConversationResponse | null>(null);
+    const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
+
+    const toggleAppliedId = (id: string) => {
+        setAppliedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
 
     if (!isOpen) return null;
 
     const handleSubmit = async () => {
         setPhase('loading');
 
-        const result = await onConfirm({
+        const payload: CloseConversationPayload = {
             conversation_id: conversationId,
             resolution_type: resolutionType,
             notes,
             create_ticket: true,
-        });
+        };
+
+        // Include applied source IDs only for resolved conversations with suggestions
+        if (resolutionType === 'Resolved Successfully' && sessionSuggestions.length > 0) {
+            payload.applied_source_ids = Array.from(appliedIds);
+        }
+
+        const result = await onConfirm(payload);
 
         setResponse(result);
         setPhase('result');
@@ -72,6 +104,7 @@ export default function CloseConversationModal({ isOpen, onClose, onConfirm, con
         setResponse(null);
         setResolutionType('Resolved Successfully');
         setNotes('');
+        setAppliedIds(new Set());
         onClose();
     };
 
@@ -112,11 +145,13 @@ export default function CloseConversationModal({ isOpen, onClose, onConfirm, con
 
     // ── Result phase ──────────────────────────────────────────────
     if (phase === 'result') {
-        const classification = response?.learning_result?.gap_classification;
+        const lr = response?.learning_result;
+        const classification = lr?.gap_classification;
         const ticketNumber = response?.ticket?.ticket_number;
         const isResolved = resolutionType === 'Resolved Successfully';
         const classInfo = classification ? CLASSIFICATION_DISPLAY[classification] : null;
         const ClassIcon = classInfo?.icon || CheckCircle2;
+        const confidenceUpdates = lr?.confidence_updates ?? [];
 
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
@@ -146,23 +181,106 @@ export default function CloseConversationModal({ isOpen, onClose, onConfirm, con
                         {/* Ticket info */}
                         {ticketNumber && (
                             <div className="flex items-center gap-2 px-3 py-2 bg-muted/30 border border-border/50 rounded-md">
+                                <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                                 <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Ticket</span>
                                 <span className="text-sm font-mono font-medium text-foreground">{ticketNumber}</span>
                             </div>
                         )}
 
-                        {/* Learning classification */}
-                        {classInfo && (
-                            <div className={cn(
-                                "flex items-start gap-3 p-3 rounded-lg border",
-                                classification === 'NEW_KNOWLEDGE' && "bg-blue-500/5 border-blue-500/20",
-                                classification === 'SAME_KNOWLEDGE' && "bg-emerald-500/5 border-emerald-500/20",
-                                classification === 'CONTRADICTS' && "bg-amber-500/5 border-amber-500/20",
-                            )}>
-                                <ClassIcon className={cn("h-4 w-4 mt-0.5 flex-shrink-0", classInfo.color)} />
-                                <p className="text-sm text-foreground/80 leading-relaxed">
-                                    {classInfo.label}
+                        {/* Learning pipeline details */}
+                        {lr && (
+                            <div className="space-y-3 p-3.5 bg-muted/20 border border-border/50 rounded-lg">
+                                <div className="flex items-center gap-2">
+                                    <BookOpen className="h-3.5 w-3.5 text-muted-foreground" />
+                                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Learning Pipeline</span>
+                                </div>
+
+                                <p className="text-xs text-muted-foreground">
+                                    {lr.retrieval_logs_processed} retrieval log{lr.retrieval_logs_processed !== 1 ? 's' : ''} processed
                                 </p>
+
+                                {/* Confidence updates */}
+                                {confidenceUpdates.length > 0 && (
+                                    <div className="space-y-1.5">
+                                        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Confidence Updates</span>
+                                        {confidenceUpdates.map((update, idx) => {
+                                            const isPositive = update.delta >= 0;
+                                            return (
+                                                <div key={`${update.source_id}-${idx}`} className="flex items-center justify-between text-xs">
+                                                    <div className="flex items-center gap-1.5">
+                                                        {isPositive
+                                                            ? <ArrowUp className="h-3 w-3 text-emerald-500" />
+                                                            : <ArrowDown className="h-3 w-3 text-red-400" />
+                                                        }
+                                                        <span className="font-mono text-foreground/80">{update.source_id}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={cn(
+                                                            "font-mono font-medium",
+                                                            isPositive ? "text-emerald-500" : "text-red-400"
+                                                        )}>
+                                                            {isPositive ? '+' : ''}{Math.round(update.delta * 100)}%
+                                                        </span>
+                                                        <span className="text-muted-foreground">
+                                                            → {(update.new_confidence * 100).toFixed(0)}%
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* Classification */}
+                                {classInfo && (
+                                    <div className={cn(
+                                        "flex items-start gap-2.5 p-2.5 rounded-md border mt-1",
+                                        classification === 'NEW_KNOWLEDGE' && "bg-blue-500/5 border-blue-500/20",
+                                        classification === 'SAME_KNOWLEDGE' && "bg-emerald-500/5 border-emerald-500/20",
+                                        classification === 'CONTRADICTS' && "bg-amber-500/5 border-amber-500/20",
+                                    )}>
+                                        <ClassIcon className={cn("h-4 w-4 mt-0.5 flex-shrink-0", classInfo.color)} />
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-medium text-foreground/90">
+                                                {classInfo.label}
+                                            </p>
+                                            {/* Matched article for SAME_KNOWLEDGE */}
+                                            {classification === 'SAME_KNOWLEDGE' && lr.matched_kb_article_id && (
+                                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                                    <Link2 className="h-3 w-3" />
+                                                    <span>Matched: <span className="font-mono font-medium text-foreground/70">{lr.matched_kb_article_id}</span></span>
+                                                    {lr.match_similarity != null && (
+                                                        <span className="text-emerald-500 font-mono">({Math.round(lr.match_similarity * 100)}% similarity)</span>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {/* Flagged + drafted for CONTRADICTS */}
+                                            {classification === 'CONTRADICTS' && (
+                                                <div className="space-y-0.5 text-xs text-muted-foreground">
+                                                    {lr.matched_kb_article_id && (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <AlertCircle className="h-3 w-3 text-amber-500" />
+                                                            <span>Flagged: <span className="font-mono font-medium text-foreground/70">{lr.matched_kb_article_id}</span></span>
+                                                        </div>
+                                                    )}
+                                                    {lr.drafted_kb_article_id && (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Sparkles className="h-3 w-3 text-blue-500" />
+                                                            <span>Draft replacement: <span className="font-mono font-medium text-foreground/70">{lr.drafted_kb_article_id}</span></span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {/* Drafted for NEW_KNOWLEDGE */}
+                                            {classification === 'NEW_KNOWLEDGE' && lr.drafted_kb_article_id && (
+                                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                                    <Sparkles className="h-3 w-3 text-blue-500" />
+                                                    <span>Draft: <span className="font-mono font-medium text-foreground/70">{lr.drafted_kb_article_id}</span></span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -267,6 +385,61 @@ export default function CloseConversationModal({ isOpen, onClose, onConfirm, con
                                 className="min-h-[100px] resize-none"
                             />
                         </div>
+
+                        {/* Applied suggestions checklist */}
+                        {resolutionType === 'Resolved Successfully' && sessionSuggestions.length > 0 && (
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-foreground uppercase tracking-wider">
+                                    Applied Suggestions
+                                    <span className="text-muted-foreground font-normal normal-case opacity-50 ml-1">
+                                        (Which suggestions helped?)
+                                    </span>
+                                </label>
+                                <div className="max-h-48 overflow-y-auto space-y-1.5 rounded-lg border border-border p-2">
+                                    {sessionSuggestions.map((suggestion) => {
+                                        const isChecked = appliedIds.has(suggestion.id);
+                                        return (
+                                            <label
+                                                key={suggestion.id}
+                                                className={cn(
+                                                    "flex items-center gap-3 cursor-pointer p-2.5 border rounded-lg transition-all",
+                                                    isChecked
+                                                        ? "bg-emerald-500/5 border-emerald-500/20 ring-1 ring-emerald-500/20"
+                                                        : "bg-background border-border hover:bg-muted/50"
+                                                )}
+                                            >
+                                                <div className={cn(
+                                                    "h-4 w-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors",
+                                                    isChecked
+                                                        ? "border-emerald-500 bg-emerald-500"
+                                                        : "border-muted-foreground"
+                                                )}>
+                                                    {isChecked && <Check className="h-3 w-3 text-white" />}
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isChecked}
+                                                    onChange={() => toggleAppliedId(suggestion.id)}
+                                                    className="sr-only"
+                                                />
+                                                <SuggestionTypeIcon type={suggestion.type} />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className={cn(
+                                                        "text-sm font-medium truncate",
+                                                        isChecked ? "text-emerald-700 dark:text-emerald-400" : "text-foreground"
+                                                    )}>
+                                                        {suggestion.title}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground truncate">
+                                                        {suggestion.source}
+                                                    </p>
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
                         <div className="flex items-start gap-3 p-3 bg-primary/5 border border-primary/10 rounded-lg">
                             <AlertCircle className="h-4 w-4 text-primary mt-0.5" />

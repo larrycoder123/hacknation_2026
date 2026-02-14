@@ -13,7 +13,7 @@ from fastapi import APIRouter, HTTPException, Path
 
 from ..data.conversations import MOCK_CONVERSATIONS, MOCK_MESSAGES
 from ..data.suggestions import MOCK_SUGGESTIONS
-from ..schemas.actions import ScoreBreakdown, SuggestedAction
+from ..schemas.actions import AdaptedSuggestion, ScoreBreakdown, SuggestedAction
 from ..schemas.conversations import CloseConversationPayload, CloseConversationResponse, Conversation
 from ..schemas.learning import SelfLearningResult
 from ..schemas.messages import Message, SimulateCustomerRequest, SimulateCustomerResponse, SuggestedActionsRequest
@@ -29,35 +29,61 @@ _SOURCE_TYPE_MAP = {"SCRIPT": "script",
                     "KB": "response", "TICKET_RESOLUTION": "action"}
 
 
-_ADAPT_SUMMARY_PROMPT = """You are an AI assistant helping a customer support agent resolve an issue.
+_ADAPT_KB_PROMPT = """You are an AI assistant helping a customer support agent resolve an issue.
 
-Given the customer's issue and the best-matching knowledge source, write a short actionable summary (3-5 sentences) that tells the agent exactly what to do. Be direct and specific.
+Given the customer's issue and the best-matching knowledge source, produce two things:
+
+1. **adapted_summary**: A short actionable summary (2-4 sentences) for the AGENT. Be direct — just the key steps and critical details. No filler.
+
+2. **draft_reply**: A message the agent can send DIRECTLY to the customer. Rules:
+   - Do NOT repeat or summarize what the customer already told you.
+   - Jump straight to the solution or next step.
+   - Professional and friendly but concise (2-3 sentences max).
+   - No internal system names, jargon, or ticket references.
+   - End with a brief offer to help further.
 
 Customer issue: {customer_issue}
 
 Knowledge source ({source_type}):
-{content}
+{content}"""
 
-Write a concise, agent-facing summary of how to resolve this issue based on the knowledge above. Focus on the key steps and any important details. Do not include greetings or filler."""
+_ADAPT_SCRIPT_PROMPT = """You are an AI assistant helping a customer support agent resolve an issue.
+
+The best-matching knowledge source is an internal script/runbook the agent will execute. Produce two things:
+
+1. **adapted_summary**: A short actionable summary (2-4 sentences) for the AGENT explaining what this script does and when to run it. Be direct.
+
+2. **draft_reply**: A brief holding message the agent can send to the customer while they run the script. Rules:
+   - Let the customer know you are looking into it / running a check.
+   - Do NOT mention internal tools, scripts, or system names.
+   - Keep it to 1-2 sentences. Professional and reassuring.
+
+Customer issue: {customer_issue}
+
+Script/runbook:
+{content}"""
 
 
-def _generate_adapted_summary(
+def _generate_adapted_suggestion(
     customer_issue: str,
     top_content: str,
     top_source_type: str,
-) -> str:
-    """Generate a short LLM-adapted summary for the top suggestion."""
+    action_type: str,
+) -> AdaptedSuggestion:
+    """Generate an adapted summary and draft customer reply for a suggestion."""
     from app.rag.core import LLM
     from app.rag.core.config import settings
 
     llm = LLM(model=settings.openai_planning_model)
-    prompt = _ADAPT_SUMMARY_PROMPT.format(
+    template = _ADAPT_SCRIPT_PROMPT if action_type == "script" else _ADAPT_KB_PROMPT
+    prompt = template.format(
         customer_issue=customer_issue[:500],
         source_type=top_source_type,
         content=top_content[:1500],
     )
     return llm.chat(
         messages=[{"role": "user", "content": prompt}],
+        response_model=AdaptedSuggestion,
         temperature=0.3,
     )
 
@@ -202,16 +228,20 @@ async def get_suggested_actions(
         if not actions:
             return MOCK_SUGGESTIONS
 
-        # Generate adapted summaries for ALL suggestions in parallel
+        # Generate adapted summaries + draft replies for ALL suggestions in parallel
         async def _adapt(action: SuggestedAction) -> SuggestedAction:
             try:
-                adapted = await asyncio.to_thread(
-                    _generate_adapted_summary,
+                result = await asyncio.to_thread(
+                    _generate_adapted_suggestion,
                     customer_issue=query,
                     top_content=action.content,
                     top_source_type=action.source,
+                    action_type=action.type,
                 )
-                return action.model_copy(update={"adapted_summary": adapted})
+                return action.model_copy(update={
+                    "adapted_summary": result.adapted_summary,
+                    "draft_reply": result.draft_reply,
+                })
             except Exception:
                 logger.exception("Failed to adapt suggestion %s", action.id)
                 return action
@@ -296,6 +326,7 @@ async def close_conversation(
                 ticket_number,
                 resolved=resolved,
                 conversation_id=conversation_id,
+                applied_source_ids=payload.applied_source_ids,
             )
             logger.info(
                 "Learning pipeline completed for %s: classification=%s",
@@ -321,12 +352,14 @@ _CUSTOMER_SIM_PROMPT = """You are simulating a customer in a support chat. You a
 
 Based on the conversation so far, respond naturally as the customer would.
 
+Decide whether the issue is resolved based on the QUALITY of the agent's response:
+- Set resolved=true if the agent provided specific, actionable steps that directly address your issue and would realistically fix it. Thank them briefly.
+- Set resolved=false if the agent's response is vague, generic, off-topic, incomplete, or asks a question. Respond accordingly — answer their question with plausible details, ask for clarification, or politely push back.
+
 Rules:
-- If the agent's latest response contains a clear, actionable solution, there is roughly a 70% chance you accept it and say the issue is resolved. Otherwise ask a follow-up or say it didn't work.
-- If the agent asks a clarifying question, answer it with plausible details.
-- If the agent's response is vague or doesn't address your issue, push back politely.
 - Keep responses concise (1-3 sentences).
 - Stay in character — don't mention AI or simulation.
+- Be a realistic customer: if the solution sounds right, accept it. If it does not make sense for your problem, say so.
 
 Respond with JSON: {{"content": "your reply", "resolved": true/false}}"""
 

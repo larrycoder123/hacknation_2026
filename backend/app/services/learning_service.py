@@ -38,6 +38,7 @@ async def run_post_conversation_learning(
     ticket_number: str,
     resolved: bool = True,
     conversation_id: str | None = None,
+    applied_source_ids: list[str] | None = None,
 ) -> SelfLearningResult:
     """Run the full self-learning pipeline for a closed ticket.
 
@@ -54,6 +55,8 @@ async def run_post_conversation_learning(
                   False → all set to UNHELPFUL.
         conversation_id: Original conversation ID, used to link pre-ticket
                         retrieval logs to the now-created ticket.
+        applied_source_ids: Source IDs the agent marked as actually helpful.
+                           None → legacy bulk RESOLVED. [] → none applied.
 
     Returns:
         SelfLearningResult with all outcomes.
@@ -61,7 +64,7 @@ async def run_post_conversation_learning(
     # ── Stage 0: Link logs & set outcomes ─────────────────────────
     if conversation_id:
         _link_logs_to_ticket(conversation_id, ticket_number)
-    _set_bulk_outcomes(ticket_number, resolved)
+    _set_bulk_outcomes(ticket_number, resolved, applied_source_ids)
 
     # ── Stage 1: Score retrieval logs ─────────────────────────────
     logs = _fetch_retrieval_logs(ticket_number)
@@ -206,27 +209,62 @@ def _link_logs_to_ticket(conversation_id: str, ticket_number: str) -> None:
         )
 
 
-def _set_bulk_outcomes(ticket_number: str, resolved: bool) -> None:
-    """Bulk-set outcomes on all retrieval_log entries for a ticket.
+def _set_bulk_outcomes(
+    ticket_number: str,
+    resolved: bool,
+    applied_source_ids: list[str] | None = None,
+) -> None:
+    """Selectively set outcomes on retrieval_log entries for a ticket.
 
-    Called when the conversation closes. If the agent resolved the issue,
-    all RAG attempts are marked RESOLVED (they contributed to the resolution).
-    If not resolved, all are marked UNHELPFUL.
+    Cases:
+        resolved=False → all PARTIAL entries → UNHELPFUL
+        resolved=True, applied_source_ids=None → legacy: all PARTIAL → RESOLVED
+        resolved=True, applied_source_ids=[...] → matched entries → RESOLVED,
+                                                   rest stay PARTIAL
+        resolved=True, applied_source_ids=[] → agent resolved without RAG,
+                                               all stay PARTIAL
     """
     sb = get_supabase()
-    outcome = "RESOLVED" if resolved else "UNHELPFUL"
 
     try:
-        sb.table("retrieval_log").update(
-            {"outcome": outcome}
-        ).eq("ticket_number", ticket_number).is_("outcome", "null").execute()
-        logger.info(
-            "Bulk-set %s outcome on retrieval_log for ticket=%s",
-            outcome,
-            ticket_number,
-        )
+        if not resolved:
+            # Not resolved: mark everything UNHELPFUL
+            sb.table("retrieval_log").update(
+                {"outcome": "UNHELPFUL"}
+            ).eq("ticket_number", ticket_number).eq("outcome", "PARTIAL").execute()
+            logger.info(
+                "Bulk-set UNHELPFUL outcome on retrieval_log for ticket=%s",
+                ticket_number,
+            )
+        elif applied_source_ids is None:
+            # Legacy fallback: bulk RESOLVED
+            sb.table("retrieval_log").update(
+                {"outcome": "RESOLVED"}
+            ).eq("ticket_number", ticket_number).eq("outcome", "PARTIAL").execute()
+            logger.info(
+                "Bulk-set RESOLVED outcome on retrieval_log for ticket=%s (legacy)",
+                ticket_number,
+            )
+        elif applied_source_ids:
+            # Selective: only applied sources → RESOLVED
+            sb.table("retrieval_log").update(
+                {"outcome": "RESOLVED"}
+            ).eq("ticket_number", ticket_number).eq(
+                "outcome", "PARTIAL"
+            ).in_("source_id", applied_source_ids).execute()
+            logger.info(
+                "Set RESOLVED on %d applied source_ids for ticket=%s; rest stay PARTIAL",
+                len(applied_source_ids),
+                ticket_number,
+            )
+        else:
+            # Empty list: agent resolved without RAG help, all stay PARTIAL
+            logger.info(
+                "No applied sources for ticket=%s; all entries stay PARTIAL",
+                ticket_number,
+            )
     except Exception:
-        logger.exception("Failed to bulk-set outcomes for ticket %s", ticket_number)
+        logger.exception("Failed to set outcomes for ticket %s", ticket_number)
 
 
 def _fetch_retrieval_logs(ticket_number: str) -> list[RetrievalLogEntry]:
@@ -244,7 +282,12 @@ def _fetch_retrieval_logs(ticket_number: str) -> list[RetrievalLogEntry]:
 
 
 def _update_confidence_scores(logs: list[RetrievalLogEntry]) -> list[ConfidenceUpdate]:
-    """Update retrieval_corpus confidence for each log entry with a corpus match."""
+    """Update retrieval_corpus confidence for each unique source with a corpus match.
+
+    Deduplicates by (source_type, source_id) so repeated retrieval attempts
+    for the same source only produce one confidence update. When a source
+    appears with multiple outcomes, the best outcome wins (RESOLVED > PARTIAL > UNHELPFUL).
+    """
     settings = get_settings()
     sb = get_supabase()
     updates: list[ConfidenceUpdate] = []
@@ -255,19 +298,29 @@ def _update_confidence_scores(logs: list[RetrievalLogEntry]) -> list[ConfidenceU
         "UNHELPFUL": (settings.confidence_delta_unhelpful, False),
     }
 
+    # Outcome priority: RESOLVED > PARTIAL > UNHELPFUL
+    outcome_priority = {"RESOLVED": 2, "PARTIAL": 1, "UNHELPFUL": 0}
+
+    # Deduplicate: keep the best outcome per (source_type, source_id)
+    best_outcome: dict[tuple[str, str], str] = {}
     for log in logs:
         if log.source_type is None or log.source_id is None or log.outcome is None:
             continue
         if log.outcome not in delta_map:
             continue
+        key = (log.source_type, log.source_id)
+        existing = best_outcome.get(key)
+        if existing is None or outcome_priority.get(log.outcome, -1) > outcome_priority.get(existing, -1):
+            best_outcome[key] = log.outcome
 
-        delta, increment_usage = delta_map[log.outcome]
+    for (source_type, source_id), outcome in best_outcome.items():
+        delta, increment_usage = delta_map[outcome]
 
         rpc_result = sb.rpc(
             "update_corpus_confidence",
             {
-                "p_source_type": log.source_type,
-                "p_source_id": log.source_id,
+                "p_source_type": source_type,
+                "p_source_id": source_id,
                 "p_delta": delta,
                 "p_increment_usage": increment_usage,
             },
@@ -281,8 +334,8 @@ def _update_confidence_scores(logs: list[RetrievalLogEntry]) -> list[ConfidenceU
             )
             updates.append(
                 ConfidenceUpdate(
-                    source_type=log.source_type,
-                    source_id=log.source_id,
+                    source_type=source_type,
+                    source_id=source_id,
                     delta=delta,
                     new_confidence=float(row["new_confidence"]),
                     new_usage_count=int(row["new_usage_count"]),

@@ -63,6 +63,7 @@ export interface SuggestedAction {
   content: string;
   source: string;
   adapted_summary?: string;
+  draft_reply?: string;
   score_breakdown?: ScoreBreakdown;
 }
 
@@ -71,6 +72,7 @@ export interface CloseConversationPayload {
   resolution_type: 'Resolved Successfully' | 'Not Applicable';
   notes?: string;
   create_ticket: boolean;
+  applied_source_ids?: string[];
 }
 
 export interface Ticket {

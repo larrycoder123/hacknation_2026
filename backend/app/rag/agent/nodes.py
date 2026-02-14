@@ -63,21 +63,28 @@ def retrieve(state: RagState) -> dict:
 
     # Parallel RPC calls via ThreadPoolExecutor
     # Each thread needs its own Supabase client (HTTP/2 connections aren't thread-safe)
-    def _run_rpc(embedding: list[float]) -> list[dict]:
-        from supabase import create_client
-        thread_client = create_client(settings.supabase_url, settings.supabase_service_role_key)
-        rpc_params: dict = {
-            "query_embedding": embedding,
-            "p_top_k": per_query_k,
-        }
-        if source_types_param:
-            rpc_params["p_source_types"] = source_types_param
-        if state.input.category:
-            rpc_params["p_category"] = state.input.category
-        return thread_client.rpc("match_corpus", rpc_params).execute().data
+    def _run_rpcs(embeddings: list[list[float]], category: str | None) -> list[list[dict]]:
+        def _call(embedding: list[float]) -> list[dict]:
+            from supabase import create_client
+            thread_client = create_client(settings.supabase_url, settings.supabase_service_role_key)
+            rpc_params: dict = {
+                "query_embedding": embedding,
+                "p_top_k": per_query_k,
+            }
+            if source_types_param:
+                rpc_params["p_source_types"] = source_types_param
+            if category:
+                rpc_params["p_category"] = category
+            return thread_client.rpc("match_corpus", rpc_params).execute().data
 
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        rpc_results = list(executor.map(_run_rpc, embeddings))
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            return list(executor.map(_call, embeddings))
+
+    # Try with category filter first; fall back to unfiltered if no results
+    rpc_results = _run_rpcs(embeddings, state.input.category)
+    total_rows = sum(len(rows) for rows in rpc_results)
+    if total_rows == 0 and state.input.category:
+        rpc_results = _run_rpcs(embeddings, None)
 
     # Deduplicate by composite key: (source_type, source_id)
     all_candidates: dict[tuple[str, str], CorpusHit] = {}
