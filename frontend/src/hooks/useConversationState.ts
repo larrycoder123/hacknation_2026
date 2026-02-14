@@ -14,6 +14,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
     Message,
     SuggestedAction,
+    SelfLearningResult,
     CloseConversationPayload,
     ConversationDisplay,
     toConversationDisplay,
@@ -24,6 +25,7 @@ import {
     fetchConversationMessages,
     fetchSuggestedActions,
     closeConversation,
+    runLearningPipeline,
     simulateCustomerReply
 } from "@/app/api/client";
 import { fillSuggestionTemplates } from "@/lib/templateFiller";
@@ -201,7 +203,7 @@ export function useConversationState() {
                 )
             );
 
-            // System messages (audit trail in chat)
+            // System messages for close + ticket
             const newMessages: Message[] = [];
 
             newMessages.push({
@@ -222,21 +224,6 @@ export function useConversationState() {
                 });
             }
 
-            if (response.learning_result?.gap_classification) {
-                const classificationMessages: Record<string, string> = {
-                    SAME_KNOWLEDGE: "Knowledge confirmed — existing article boosted",
-                    NEW_KNOWLEDGE: "Knowledge gap detected — new KB article drafted for review",
-                    CONTRADICTS: "Contradiction detected — existing KB flagged for review",
-                };
-                newMessages.push({
-                    id: `sys-learn-${Date.now()}`,
-                    conversation_id: selectedConversationId,
-                    sender: "system",
-                    content: classificationMessages[response.learning_result.gap_classification] || "Learning pipeline completed",
-                    timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                });
-            }
-
             setMessages((prev) => ({
                 ...prev,
                 [selectedConversationId]: [...(prev[selectedConversationId] || []), ...newMessages],
@@ -251,6 +238,39 @@ export function useConversationState() {
         } catch (err) {
             console.error("Failed to close conversation:", err);
             setError("Failed to close conversation.");
+            return null;
+        }
+    }, [selectedConversationId]);
+
+    const runLearning = useCallback(async (ticketNumber: string): Promise<SelfLearningResult | null> => {
+        if (!selectedConversationId) return null;
+
+        try {
+            const result = await runLearningPipeline(ticketNumber);
+
+            // Add system message for learning result
+            if (result.gap_classification) {
+                const classificationMessages: Record<string, string> = {
+                    SAME_KNOWLEDGE: "Knowledge confirmed — existing article boosted",
+                    NEW_KNOWLEDGE: "Knowledge gap detected — new KB article drafted for review",
+                    CONTRADICTS: "Contradiction detected — existing KB flagged for review",
+                };
+                const msg: Message = {
+                    id: `sys-learn-${Date.now()}`,
+                    conversation_id: selectedConversationId,
+                    sender: "system",
+                    content: classificationMessages[result.gap_classification] || "Learning pipeline completed",
+                    timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                };
+                setMessages((prev) => ({
+                    ...prev,
+                    [selectedConversationId]: [...(prev[selectedConversationId] || []), msg],
+                }));
+            }
+
+            return result;
+        } catch (err) {
+            console.error("Learning pipeline failed:", err);
             return null;
         }
     }, [selectedConversationId]);
@@ -277,5 +297,6 @@ export function useConversationState() {
         sendMessage,
         getSuggestions,
         closeActiveConversation,
+        runLearning,
     };
 }

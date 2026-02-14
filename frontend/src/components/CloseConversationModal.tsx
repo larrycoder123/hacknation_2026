@@ -11,13 +11,13 @@
  */
 
 import { useState } from 'react';
-import { CloseConversationPayload, CloseConversationResponse, SuggestedAction, ActionType } from '@/types';
+import { CloseConversationPayload, CloseConversationResponse, SelfLearningResult, SuggestedAction, ActionType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle2, AlertCircle, Loader2, BookOpen, ShieldCheck, Sparkles, X, ArrowUp, ArrowDown, FileText, Link2, Terminal, MessageSquare, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type ModalPhase = 'form' | 'loading' | 'result';
+type ModalPhase = 'form' | 'closing' | 'learning' | 'result';
 
 const SuggestionTypeIcon = ({ type }: { type: ActionType }) => {
     switch (type) {
@@ -34,6 +34,7 @@ interface CloseConversationModalProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: (payload: CloseConversationPayload) => Promise<CloseConversationResponse | null>;
+    onLearn: (ticketNumber: string) => Promise<SelfLearningResult | null>;
     conversationId: string;
     sessionSuggestions: SuggestedAction[];
 }
@@ -56,11 +57,13 @@ const CLASSIFICATION_DISPLAY: Record<string, { label: string; icon: typeof BookO
     },
 };
 
-export default function CloseConversationModal({ isOpen, onClose, onConfirm, conversationId, sessionSuggestions }: CloseConversationModalProps) {
+export default function CloseConversationModal({ isOpen, onClose, onConfirm, onLearn, conversationId, sessionSuggestions }: CloseConversationModalProps) {
     const [resolutionType, setResolutionType] = useState<CloseConversationPayload['resolution_type']>('Resolved Successfully');
     const [notes, setNotes] = useState('');
     const [phase, setPhase] = useState<ModalPhase>('form');
     const [response, setResponse] = useState<CloseConversationResponse | null>(null);
+    const [learningResult, setLearningResult] = useState<SelfLearningResult | null>(null);
+    const [learningFailed, setLearningFailed] = useState(false);
     const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
 
     const toggleAppliedId = (id: string) => {
@@ -78,7 +81,7 @@ export default function CloseConversationModal({ isOpen, onClose, onConfirm, con
     if (!isOpen) return null;
 
     const handleSubmit = async () => {
-        setPhase('loading');
+        setPhase('closing');
 
         const payload: CloseConversationPayload = {
             conversation_id: conversationId,
@@ -92,9 +95,21 @@ export default function CloseConversationModal({ isOpen, onClose, onConfirm, con
             payload.applied_source_ids = Array.from(appliedIds);
         }
 
-        const result = await onConfirm(payload);
+        const closeResult = await onConfirm(payload);
+        setResponse(closeResult);
 
-        setResponse(result);
+        // If resolved with a ticket, run the learning pipeline as a separate request
+        const ticketNumber = closeResult?.ticket?.ticket_number;
+        if (ticketNumber && resolutionType === 'Resolved Successfully') {
+            setPhase('learning');
+            const lr = await onLearn(ticketNumber);
+            if (lr) {
+                setLearningResult(lr);
+            } else {
+                setLearningFailed(true);
+            }
+        }
+
         setPhase('result');
     };
 
@@ -102,18 +117,21 @@ export default function CloseConversationModal({ isOpen, onClose, onConfirm, con
         // Reset state for next use
         setPhase('form');
         setResponse(null);
+        setLearningResult(null);
+        setLearningFailed(false);
         setResolutionType('Resolved Successfully');
         setNotes('');
         setAppliedIds(new Set());
         onClose();
     };
 
-    // ── Loading phase ─────────────────────────────────────────────
-    if (phase === 'loading') {
+    // ── Loading phases ────────────────────────────────────────────
+    if (phase === 'closing' || phase === 'learning') {
+        const isLearning = phase === 'learning';
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
                 <div className="w-full max-w-md bg-card rounded-lg shadow-lg border border-border animate-in fade-in zoom-in-95 duration-200">
-                    <div className="p-8 flex flex-col items-center justify-center space-y-4">
+                    <div className="p-8 flex flex-col items-center justify-center space-y-5">
                         <div className="relative">
                             <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                                 <Loader2 className="h-6 w-6 text-primary animate-spin" />
@@ -121,16 +139,40 @@ export default function CloseConversationModal({ isOpen, onClose, onConfirm, con
                         </div>
                         <div className="text-center space-y-1">
                             <h3 className="text-base font-semibold text-foreground">
-                                {resolutionType === 'Resolved Successfully'
-                                    ? 'Running learning pipeline...'
-                                    : 'Closing conversation...'}
+                                {isLearning ? 'Running learning pipeline...' : 'Generating ticket...'}
                             </h3>
                             <p className="text-sm text-muted-foreground">
-                                {resolutionType === 'Resolved Successfully'
-                                    ? 'Generating ticket and analyzing knowledge'
-                                    : 'This will only take a moment'}
+                                {isLearning
+                                    ? 'Analyzing knowledge and updating confidence scores'
+                                    : 'Creating ticket from conversation'}
                             </p>
                         </div>
+                        {/* Step indicators */}
+                        {resolutionType === 'Resolved Successfully' && (
+                            <div className="flex items-center gap-3 text-xs">
+                                <div className={cn(
+                                    "flex items-center gap-1.5",
+                                    isLearning ? "text-emerald-500" : "text-primary"
+                                )}>
+                                    {isLearning
+                                        ? <CheckCircle2 className="h-3.5 w-3.5" />
+                                        : <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    }
+                                    <span className="font-medium">Ticket</span>
+                                </div>
+                                <div className="w-6 h-px bg-border" />
+                                <div className={cn(
+                                    "flex items-center gap-1.5",
+                                    isLearning ? "text-primary" : "text-muted-foreground/40"
+                                )}>
+                                    {isLearning
+                                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        : <BookOpen className="h-3.5 w-3.5" />
+                                    }
+                                    <span className="font-medium">Learning</span>
+                                </div>
+                            </div>
+                        )}
                         <button
                             onClick={handleDone}
                             className="text-xs text-amber-500 hover:text-amber-400 font-medium transition-colors mt-2"
@@ -145,7 +187,7 @@ export default function CloseConversationModal({ isOpen, onClose, onConfirm, con
 
     // ── Result phase ──────────────────────────────────────────────
     if (phase === 'result') {
-        const lr = response?.learning_result;
+        const lr = learningResult;
         const classification = lr?.gap_classification;
         const ticketNumber = response?.ticket?.ticket_number;
         const isResolved = resolutionType === 'Resolved Successfully';
@@ -281,6 +323,16 @@ export default function CloseConversationModal({ isOpen, onClose, onConfirm, con
                                         </div>
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {/* Learning failed */}
+                        {isResolved && learningFailed && !lr && (
+                            <div className="flex items-start gap-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+                                <AlertCircle className="h-4 w-4 mt-0.5 text-amber-500 flex-shrink-0" />
+                                <p className="text-sm text-amber-600 dark:text-amber-400 leading-relaxed">
+                                    Learning pipeline could not complete. The ticket was saved — learning can be retried later.
+                                </p>
                             </div>
                         )}
 

@@ -34,9 +34,9 @@ Ticket #500 gets resolved. Ticket #501 gets better suggestions because of it.
 
 ## Architecture
 
-![Architecture](architecture.svg)
+![Architecture](docs/architecture.svg)
 
-<sub>Source: <a href="architecture.puml">architecture.puml</a></sub>
+<sub>Source: <a href="docs/architecture.puml">architecture.puml</a></sub>
 
 ## Setup & Testing
 

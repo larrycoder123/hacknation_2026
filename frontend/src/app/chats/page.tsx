@@ -39,6 +39,7 @@ export default function ChatsPage() {
     sendMessage,
     getSuggestions,
     closeActiveConversation,
+    runLearning,
   } = useConversationState();
 
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
@@ -87,6 +88,7 @@ export default function ChatsPage() {
           isOpen={isCloseModalOpen}
           onClose={() => setIsCloseModalOpen(false)}
           onConfirm={closeActiveConversation}
+          onLearn={runLearning}
           conversationId={selectedConversationId}
           sessionSuggestions={sessionSuggestions}
         />

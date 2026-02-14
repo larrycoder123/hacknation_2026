@@ -34,38 +34,40 @@ logger = logging.getLogger(__name__)
 # ── Public API ────────────────────────────────────────────────────────
 
 
-async def run_post_conversation_learning(
+def set_conversation_outcomes(
     ticket_number: str,
     resolved: bool = True,
     conversation_id: str | None = None,
     applied_source_ids: list[str] | None = None,
-) -> SelfLearningResult:
-    """Run the full self-learning pipeline for a closed ticket.
+) -> None:
+    """Stage 0: Link retrieval logs to ticket and set outcomes.
 
-    Stage 0: Link retrieval_log entries from conversation_id to ticket_number,
-             then bulk-set outcomes based on resolution status.
+    Called by the close endpoint (fast DB operations only).
+    The heavy learning pipeline runs separately via run_post_conversation_learning.
+    """
+    if conversation_id:
+        _link_logs_to_ticket(conversation_id, ticket_number)
+    _set_bulk_outcomes(ticket_number, resolved, applied_source_ids)
+
+
+async def run_post_conversation_learning(
+    ticket_number: str,
+) -> SelfLearningResult:
+    """Run the self-learning pipeline for a closed ticket (Stages 1-3).
+
+    Assumes Stage 0 (link logs + set outcomes) was already done by the close
+    endpoint via set_conversation_outcomes().
+
     Stage 1: Fetch retrieval_log entries, update confidence scores on corpus.
     Stage 2: Run fresh RAG gap detection against the ticket's resolution.
     Stage 3: Act on classification (SAME_KNOWLEDGE / CONTRADICTS / NEW_KNOWLEDGE).
 
     Args:
         ticket_number: The ticket to process.
-        resolved: Whether the conversation was resolved successfully.
-                  True → all retrieval_log outcomes set to RESOLVED.
-                  False → all set to UNHELPFUL.
-        conversation_id: Original conversation ID, used to link pre-ticket
-                        retrieval logs to the now-created ticket.
-        applied_source_ids: Source IDs the agent marked as actually helpful.
-                           None → legacy bulk RESOLVED. [] → none applied.
 
     Returns:
         SelfLearningResult with all outcomes.
     """
-    # ── Stage 0: Link logs & set outcomes ─────────────────────────
-    if conversation_id:
-        _link_logs_to_ticket(conversation_id, ticket_number)
-    _set_bulk_outcomes(ticket_number, resolved, applied_source_ids)
-
     # ── Stage 1: Score retrieval logs ─────────────────────────────
     logs = _fetch_retrieval_logs(ticket_number)
     confidence_updates = _update_confidence_scores(logs) if logs else []

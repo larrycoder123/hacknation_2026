@@ -2,6 +2,7 @@ import {
     SuggestedAction,
     CloseConversationPayload,
     CloseConversationResponse,
+    SelfLearningResult,
     Conversation,
     Message,
     SimulateCustomerResponse,
@@ -99,6 +100,21 @@ export async function closeConversation(payload: CloseConversationPayload): Prom
         throw new Error('Failed to close conversation');
     }
 
+    return response.json();
+}
+
+/**
+ * Run the self-learning pipeline for a ticket (Stages 1-3: confidence updates + gap detection).
+ * Called after close endpoint has already set outcomes (Stage 0).
+ */
+export async function runLearningPipeline(ticketNumber: string): Promise<SelfLearningResult> {
+    const response = await fetch(`${API_BASE_URL}/tickets/${ticketNumber}/learn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+        throw new Error('Learning pipeline failed');
+    }
     return response.json();
 }
 

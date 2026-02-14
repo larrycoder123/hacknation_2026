@@ -316,26 +316,26 @@ async def close_conversation(
     MOCK_CONVERSATIONS[conversation_id] = conversation.model_copy(
         update={"status": "Resolved"})
 
-    # Run self-learning pipeline only if ticket was saved to DB
+    # Stage 0 only: link retrieval logs to ticket and set outcomes (fast DB ops)
     ticket_saved = ticket is not None and ticket.ticket_number is not None
     if ticket_saved and payload.resolution_type == "Resolved Successfully":
         try:
-            ticket_number = ticket.ticket_number
-            resolved = payload.resolution_type == "Resolved Successfully"
-            learning_result = await learning_service.run_post_conversation_learning(
-                ticket_number,
-                resolved=resolved,
+            learning_service.set_conversation_outcomes(
+                ticket_number=ticket.ticket_number,
+                resolved=True,
                 conversation_id=conversation_id,
                 applied_source_ids=payload.applied_source_ids,
             )
             logger.info(
-                "Learning pipeline completed for %s: classification=%s",
+                "Set outcomes for conversation %s, ticket %s",
                 conversation_id,
-                learning_result.gap_classification,
+                ticket.ticket_number,
             )
         except Exception:
             logger.exception(
-                "Learning pipeline failed for conversation %s", conversation_id)
+                "Failed to set outcomes for conversation %s", conversation_id)
+            warnings.append(
+                "Outcomes could not be set on retrieval logs.")
 
     return CloseConversationResponse(
         status="success",
