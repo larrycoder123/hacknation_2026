@@ -228,8 +228,10 @@ async def get_suggested_actions(
         if not actions:
             return MOCK_SUGGESTIONS
 
-        # Generate adapted summaries + draft replies for ALL suggestions in parallel
-        async def _adapt(action: SuggestedAction) -> SuggestedAction:
+        # Generate adapted summaries + draft replies sequentially
+        # (sequential to keep peak memory low on constrained servers)
+        adapted: list[SuggestedAction] = []
+        for action in actions:
             try:
                 result = await asyncio.to_thread(
                     _generate_adapted_suggestion,
@@ -238,17 +240,19 @@ async def get_suggested_actions(
                     top_source_type=action.source,
                     action_type=action.type,
                 )
-                return action.model_copy(update={
+                adapted.append(action.model_copy(update={
                     "adapted_summary": result.adapted_summary,
                     "draft_reply": result.draft_reply,
-                })
+                }))
             except Exception:
                 logger.exception("Failed to adapt suggestion %s", action.id)
-                return action
+                adapted.append(action)
 
-        actions = list(await asyncio.gather(*[_adapt(a) for a in actions]))
+        # Release memory from RAG/LLM operations before returning
+        import gc
+        gc.collect()
 
-        return actions
+        return adapted
 
     except Exception:
         logger.exception(
