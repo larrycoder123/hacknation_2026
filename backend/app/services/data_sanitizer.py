@@ -88,14 +88,20 @@ def _get_analyzer() -> AnalyzerEngine:
     """Get or create the Presidio analyzer engine (lazy initialization)."""
     global _analyzer
     if _analyzer is None:
-        logger.info("Initializing Presidio AnalyzerEngine with spaCy en_core_web_lg...")
-        _analyzer = AnalyzerEngine()
-        
+        from presidio_analyzer.nlp_engine import NlpEngineProvider
+
+        logger.info("Initializing Presidio AnalyzerEngine with spaCy en_core_web_sm...")
+        provider = NlpEngineProvider(nlp_configuration={
+            "nlp_engine_name": "spacy",
+            "models": [{"lang_code": "en", "model_name": "en_core_web_sm"}],
+        })
+        _analyzer = AnalyzerEngine(nlp_engine=provider.create_engine())
+
         # Register custom recognizers for enhanced detection
         for recognizer in _create_custom_recognizers():
             _analyzer.registry.add_recognizer(recognizer)
             logger.debug("Registered custom recognizer: %s", recognizer.name)
-    
+
     return _analyzer
 
 
