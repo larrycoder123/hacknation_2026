@@ -2,6 +2,18 @@
 
 **Hack-Nation 2026 | RealPage Sponsor Track**
 
+---
+
+## 🎬 Demo Video
+
+<a href="https://youtu.be/9tXvdNPgeiU" target="_blank">
+  <img src="https://img.youtube.com/vi/9tXvdNPgeiU/maxresdefault.jpg" alt="SupportMind Demo" width="100%">
+</a>
+
+*Click to watch the full demo on YouTube*
+
+---
+
 Support teams accumulate knowledge through resolved tickets, but that knowledge stays locked in closed conversations. Agents solve the same problems repeatedly because past resolutions never feed back into the tools they use.
 
 SupportMind fixes this. When an agent closes a conversation, the system generates a structured ticket, compares the resolution against existing documentation, and drafts new KB articles when it finds gaps or outdated content. Those drafts go through human review, then become searchable for the next agent who hits the same issue.
