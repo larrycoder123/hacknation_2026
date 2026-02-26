@@ -7,7 +7,7 @@
 ## 🎬 Demo Video
 
 <a href="https://youtu.be/9tXvdNPgeiU" target="_blank">
-  <img src="https://img.youtube.com/vi/9tXvdNPgeiU/hqdefault.jpg" alt="SupportMind Demo" width="100%">
+  <img src="https://img.youtube.com/vi/9tXvdNPgeiU/maxresdefault.jpg" alt="SupportMind Demo" width="100%">
 </a>
 
 *Click to watch the full demo on YouTube*
